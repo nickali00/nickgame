@@ -1,66 +1,101 @@
-"""Primo flusso di Nickgame: crea una stanza o partecipa con un nickname."""
-from pathlib import Path
-import secrets
+"""Pagine e API web di Nickgame."""
+import flask
 
-from flask import Flask, redirect, render_template, request, session, url_for
-
+import configurazione
 import connessione
 import repository
-from servizi import ErroreAccesso, accedi
+import servizi
+import sincronizzazione
 
-app = Flask(__name__)
-instance = Path(app.instance_path)
-instance.mkdir(exist_ok=True)
-
-# La chiave locale firma i cookie: conservarla mantiene valide le sessioni.
-key_file = instance / 'secret.key'
-try:
-    with key_file.open('x') as file:
-        file.write(secrets.token_hex(32))
-except FileExistsError:
-    pass
-app.config.update(
-    SECRET_KEY=key_file.read_text(),
-    DATABASE=instance / 'nickgame.sqlite',
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-)
-
-
+app = flask.Flask(__name__)
+configurazione.configura(app)
 connessione.init_app(app)
+
+
+def utente_corrente():
+    # La sessione contiene lo username del browser che sta facendo la richiesta.
+    username = flask.session.get('username')
+    utente = repository.trova_utente(username)
+    # Il valore predefinito mantiene valide le sessioni precedenti all'aggiornamento.
+    accesso_id = flask.session.get('accesso_id', username)
+    if utente is None or utente['accesso_id'] != accesso_id:
+        flask.session.clear()
+        return None
+    return utente
 
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
-    utente = repository.trova_utente(session.get('username'))
-    if utente:
-        return redirect(url_for('stanza'))
+    if utente_corrente() is not None:
+        return flask.redirect(flask.url_for('stanza'))
 
-    errore = None
-    username = ''
-    codice = ''
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        codice = request.form.get('codice', '').strip()
-        azione = request.form.get('azione')
-        try:
-            accedi(username, azione, codice)
-        except ErroreAccesso as error:
-            errore = str(error)
-        else:
-            session.clear()
-            session['username'] = username
-            return redirect(url_for('stanza'))
-    return render_template('login.html', errore=errore, username=username, codice=codice)
+    # GET: mostra il form vuoto. POST: elabora i dati inviati dal form.
+    if flask.request.method != 'POST':
+        return flask.render_template('login.html', errore=None, username='', codice='')
+
+    username = flask.request.form.get('username', '').strip()
+    codice = flask.request.form.get('codice', '').strip()
+    azione = flask.request.form.get('azione')
+
+    try:
+        codice, accesso_id = servizi.accedi(username, azione, codice)
+    except servizi.ErroreAccesso as errore:
+        return flask.render_template(
+            'login.html', errore=str(errore), username=username, codice=codice
+        )
+
+    # Il servizio ha salvato i dati: ricordiamo l'utente e avvisiamo Go.
+    flask.session.clear()
+    flask.session['username'] = username
+    flask.session['accesso_id'] = accesso_id
+    sincronizzazione.notifica_stanza(codice)
+    return flask.redirect(flask.url_for('stanza'))
+
+
+@app.post('/logout')
+def logout():
+    username = flask.session.get('username')
+    accesso_id = flask.session.get('accesso_id', username)
+    codice = servizi.esci(username, accesso_id)
+    flask.session.clear()
+    if codice is not None:
+        sincronizzazione.notifica_stanza(codice)
+    return flask.redirect(flask.url_for('login'))
 
 
 @app.get('/stanza')
 def stanza():
-    utente = repository.trova_utente(session.get('username'))
+    utente = utente_corrente()
     if utente is None:
-        return redirect(url_for('login'))
-    partecipanti = repository.partecipanti_stanza(utente['stanza_codice'])
-    return render_template('stanza.html', utente=utente, partecipanti=partecipanti)
+        return flask.redirect(flask.url_for('login'))
+
+    elenco = repository.partecipanti_stanza(utente['stanza_codice'])
+    return flask.render_template('stanza.html', utente=utente, partecipanti=elenco)
+
+
+@app.get('/api/partecipanti')
+def partecipanti():
+    utente = utente_corrente()
+    if utente is None:
+        return flask.jsonify(errore='Accesso richiesto'), 401
+
+    elenco = repository.partecipanti_stanza(utente['stanza_codice'])
+    risposta = flask.jsonify(elenco)
+    risposta.headers['Cache-Control'] = 'no-store'
+    return risposta
+
+
+@app.get('/api/sincronizzazione')
+def collegamento():
+    utente = utente_corrente()
+    if utente is None:
+        return flask.jsonify(errore='Accesso richiesto'), 401
+
+    indirizzo = sincronizzazione.url_websocket(utente['stanza_codice'])
+    risposta = flask.jsonify(url=indirizzo)
+    risposta.headers['Cache-Control'] = 'no-store'
+    return risposta
+
 
 if __name__ == '__main__':
     app.run()

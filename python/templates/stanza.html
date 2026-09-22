@@ -16,7 +16,7 @@
             <h2>Codice stanza: {{ utente['stanza_codice'] }}</h2>
             <p>Condividi questo codice con gli altri giocatori.</p>
             <h3>Partecipanti</h3>
-            <ul>
+            <ul id="partecipanti" data-url="{{ url_for('partecipanti') }}">
                 {% for partecipante in partecipanti %}
                 <li>
                     {{ partecipante['username'] }}
@@ -24,8 +24,17 @@
                 </li>
                 {% endfor %}
             </ul>
-            <p>Ricarica la pagina per aggiornare l’elenco dei partecipanti.</p>
+            <span id="sincronizzazione" hidden data-url="{{ url_for('collegamento') }}"></span>
+            <noscript>Attiva JavaScript o ricarica la pagina per aggiornare i partecipanti.</noscript>
+            <form method="post" action="{{ url_for('logout') }}">
+                {% if utente['is_admin'] %}
+                <button type="submit" class="btn-primary">Esci e chiudi stanza</button>
+                {% else %}
+                <button type="submit" class="btn-secondary">Esci dalla stanza</button>
+                {% endif %}
+            </form>
         </section>
     </main>
+    <script src="{{ url_for('static', filename='stanza.js') }}" defer></script>
 </body>
 </html>

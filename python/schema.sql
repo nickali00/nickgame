@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS stanze (
 CREATE TABLE IF NOT EXISTS utenti (
     username TEXT PRIMARY KEY NOT NULL
         CHECK (length(trim(username)) BETWEEN 1 AND 30),
+    accesso_id TEXT NOT NULL,
     stanza_codice TEXT NOT NULL REFERENCES stanze(codice),
     is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0, 1))
 );

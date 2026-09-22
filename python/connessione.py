@@ -25,6 +25,16 @@ def init_db():
     with open(current_app.root_path + '/schema.sql', encoding='utf-8') as file:
         get_db().executescript(file.read())
 
+    # Aggiorna anche il database delle versioni precedenti, senza perdere utenti.
+    db = get_db()
+    colonne = db.execute('PRAGMA table_info(utenti)').fetchall()
+    nomi = [colonna['name'] for colonna in colonne]
+    if 'accesso_id' not in nomi:
+        with db:
+            db.execute("ALTER TABLE utenti ADD COLUMN accesso_id TEXT NOT NULL DEFAULT ''")
+            # Le vecchie sessioni contenevano solo lo username.
+            db.execute('UPDATE utenti SET accesso_id = username')
+
 
 def transazione():
     db = get_db()

@@ -19,10 +19,10 @@ def inserisci_stanza(codice):
     get_db().execute('INSERT INTO stanze (codice) VALUES (?)', (codice,))
 
 
-def inserisci_utente(username, codice, is_admin):
+def inserisci_utente(username, codice, is_admin, accesso_id):
     get_db().execute(
-        'INSERT INTO utenti (username, stanza_codice, is_admin) VALUES (?, ?, ?)',
-        (username, codice, int(is_admin)),
+        'INSERT INTO utenti (username, stanza_codice, is_admin, accesso_id) VALUES (?, ?, ?, ?)',
+        (username, codice, int(is_admin), accesso_id),
     )
 
 
@@ -32,3 +32,15 @@ def partecipanti_stanza(codice):
         'ORDER BY is_admin DESC, username', (codice,)
     ).fetchall()
     return [dict(row) for row in rows]
+
+
+def elimina_utente(username):
+    get_db().execute('DELETE FROM utenti WHERE username = ?', (username,))
+
+
+def elimina_utenti_stanza(codice):
+    get_db().execute('DELETE FROM utenti WHERE stanza_codice = ?', (codice,))
+
+
+def elimina_stanza(codice):
+    get_db().execute('DELETE FROM stanze WHERE codice = ?', (codice,))

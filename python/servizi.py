@@ -10,7 +10,7 @@ class ErroreAccesso(ValueError):
 
 
 def accedi(username, azione, codice=''):
-    """Registra il partecipante e restituisce il codice della sua stanza."""
+    """Registra il partecipante e restituisce codice stanza e identificatore di accesso."""
     # Il form passa già lo username senza spazi iniziali e finali.
     lunghezza = len(username.strip())
     if lunghezza < 1 or lunghezza > 30:
@@ -40,5 +40,23 @@ def accedi(username, azione, codice=''):
             repository.inserisci_stanza(codice)
         # Solo chi crea la stanza riceve il ruolo di admin.
         is_admin = azione == 'crea'
-        repository.inserisci_utente(username, codice, is_admin)
+        accesso_id = secrets.token_hex(16)
+        repository.inserisci_utente(username, codice, is_admin, accesso_id)
+    return codice, accesso_id
+
+
+def esci(username, accesso_id):
+    """Elimina l'utente o, se è admin, tutta la stanza. Restituisce il codice da notificare."""
+    with transazione():
+        utente = repository.trova_utente(username)
+        if utente is None or utente['accesso_id'] != accesso_id:
+            return None
+
+        codice = utente['stanza_codice']
+        if utente['is_admin']:
+            # Prima i partecipanti, poi la stanza: rispettiamo la chiave esterna.
+            repository.elimina_utenti_stanza(codice)
+            repository.elimina_stanza(codice)
+        else:
+            repository.elimina_utente(username)
     return codice
