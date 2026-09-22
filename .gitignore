@@ -31,3 +31,10 @@ obj/
 # Risultati dei test
 coverage/
 TestResults/
+
+# Database SQLite e chiave di sessione locali
+python/instance/
+
+# Documentazione e test personali: solo locali, a qualsiasi profondità
+docs/
+tests/
