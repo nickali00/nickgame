@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nickgame — Accesso</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main>
+        <header>
+            <h1>NICKGAME</h1>
+            <p>Scegli uno username, poi crea una stanza o entra con un codice.</p>
+        </header>
+
+        <form method="post" class="card" novalidate>
+            <h2>Accedi al gioco</h2>
+            {% if errore %}
+            <p class="errore" role="alert">{{ errore }}</p>
+            {% endif %}
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" maxlength="30" value="{{ username }}" required>
+
+            <button type="submit" name="azione" value="crea" class="btn-primary">Crea stanza</button>
+
+            <label for="codice">Codice stanza</label>
+            <input type="text" id="codice" name="codice"
+                   value="{{ codice }}" inputmode="numeric" maxlength="6" pattern="[0-9]{6}"
+                   placeholder="Es. 004281" aria-describedby="aiuto-codice">
+            <small id="aiuto-codice">Inserisci le 6 cifre per entrare in una stanza.</small>
+
+            <button type="submit" name="azione" value="entra" class="btn-secondary">Entra</button>
+        </form>
+    </main>
+</body>
+</html>

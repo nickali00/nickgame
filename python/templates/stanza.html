@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NICKGAME — Stanza</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main>
+        <header>
+            <h1>NICKGAME</h1>
+            <p>Ciao {{ utente['username'] }}! Sei nella stanza.</p>
+        </header>
+        <section class="card">
+            <h2>Codice stanza: {{ utente['stanza_codice'] }}</h2>
+            <p>Condividi questo codice con gli altri giocatori.</p>
+            <h3>Partecipanti</h3>
+            <ul>
+                {% for partecipante in partecipanti %}
+                <li>
+                    {{ partecipante['username'] }}
+                    {% if partecipante['is_admin'] %}<strong> — Admin</strong>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            <p>Ricarica la pagina per aggiornare l’elenco dei partecipanti.</p>
+        </section>
+    </main>
+</body>
+</html>
