@@ -31,7 +31,10 @@ def login():
 
     # GET: mostra il form vuoto. POST: elabora i dati inviati dal form.
     if flask.request.method != 'POST':
-        return flask.render_template('login.html', errore=None, username='', codice='')
+        return flask.render_template(
+            'login.html', errore=None, username='', codice='',
+            stanze=repository.stanze_disponibili()
+        )
 
     username = flask.request.form.get('username', '').strip()
     codice = flask.request.form.get('codice', '').strip()
@@ -41,7 +44,8 @@ def login():
         codice, accesso_id = servizi.accedi(username, azione, codice)
     except servizi.ErroreAccesso as errore:
         return flask.render_template(
-            'login.html', errore=str(errore), username=username, codice=codice
+            'login.html', errore=str(errore), username=username, codice=codice,
+            stanze=repository.stanze_disponibili()
         )
 
     # Il servizio ha salvato i dati: ricordiamo l'utente e avvisiamo Go.
@@ -71,6 +75,14 @@ def stanza():
 
     elenco = repository.partecipanti_stanza(utente['stanza_codice'])
     return flask.render_template('stanza.html', utente=utente, partecipanti=elenco)
+
+
+@app.get('/api/stanze')
+def elenco_stanze():
+    # La lista è visibile prima dell'accesso, come la pagina di login.
+    risposta = flask.jsonify(repository.stanze_disponibili())
+    risposta.headers['Cache-Control'] = 'no-store'
+    return risposta
 
 
 @app.get('/api/partecipanti')

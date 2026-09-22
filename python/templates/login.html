@@ -13,7 +13,7 @@
             <p>Scegli uno username, poi crea una stanza o entra con un codice.</p>
         </header>
 
-        <form method="post" class="card" novalidate>
+        <form id="accesso" method="post" class="card" novalidate>
             <h2>Accedi al gioco</h2>
             {% if errore %}
             <p class="errore" role="alert">{{ errore }}</p>
@@ -29,8 +29,28 @@
                    placeholder="Es. 004281" aria-describedby="aiuto-codice">
             <small id="aiuto-codice">Inserisci le 6 cifre per entrare in una stanza.</small>
 
-            <button type="submit" name="azione" value="entra" class="btn-secondary">Entra</button>
+            <button type="submit" name="azione" value="entra" id="entra-con-codice" class="btn-secondary">Entra</button>
         </form>
+        <section class="card stanze-disponibili" aria-labelledby="titolo-stanze">
+            <h2 id="titolo-stanze">Stanze disponibili</h2>
+            <ul id="stanze" class="elenco-stanze"
+                data-url="{{ url_for('elenco_stanze') }}"
+                data-websocket="{{ config['GO_WEBSOCKET_URL'] }}/ws?stanza=lobby">
+                {% for stanza in stanze %}
+                <li class="riga-stanza" data-codice="{{ stanza['codice'] }}">
+                    <div>
+                        <strong>Stanza {{ stanza['codice'] }}</strong>
+                        <p>Admin: {{ stanza['admin'] }} · Partecipanti: {{ stanza['partecipanti'] }}</p>
+                    </div>
+                    <button type="button" class="btn-secondary" data-codice="{{ stanza['codice'] }}"
+                            aria-label="Entra nella stanza {{ stanza['codice'] }}">Entra</button>
+                </li>
+                {% endfor %}
+            </ul>
+            <p id="nessuna-stanza" {% if stanze %}hidden{% endif %}>Nessuna stanza disponibile. Crea la prima!</p>
+            <noscript>Per entrare, inserisci lo username e il codice nel form sopra.</noscript>
+        </section>
     </main>
+    <script src="{{ url_for('static', filename='stanze.js') }}" defer></script>
 </body>
 </html>

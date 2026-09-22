@@ -12,7 +12,7 @@ import (
 type server struct {
 	chiave string
 	mutex  sync.Mutex
-	// Ogni connessione appartiene a una stanza.
+	// Ogni connessione segue una stanza oppure la lista pubblica "lobby".
 	connessioni map[*websocket.Conn]string
 }
 
@@ -48,7 +48,7 @@ func (s *server) rimuovi(conn *websocket.Conn) {
 
 func (s *server) collega(w http.ResponseWriter, r *http.Request) {
 	codice := r.URL.Query().Get("stanza")
-	if r.Method != http.MethodGet || !codiceValido(codice) {
+	if r.Method != http.MethodGet || (codice != "lobby" && !codiceValido(codice)) {
 		http.Error(w, "Richiesta non valida", http.StatusBadRequest)
 		return
 	}
@@ -60,7 +60,7 @@ func (s *server) collega(w http.ResponseWriter, r *http.Request) {
 
 	s.mutex.Lock()
 	s.connessioni[conn] = codice
-	err = inviaAvviso(conn) // Recupera gli ingressi precedenti al collegamento.
+	err = inviaAvviso(conn, codice) // Recupera gli ingressi precedenti al collegamento.
 	s.mutex.Unlock()
 	if err != nil {
 		return

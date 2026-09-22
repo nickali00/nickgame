@@ -10,9 +10,13 @@ import (
 )
 
 // Chiamata sempre con il mutex acquisito: una sola scrittura per volta.
-func inviaAvviso(conn *websocket.Conn) error {
+func inviaAvviso(conn *websocket.Conn, canale string) error {
+	tipo := "partecipanti_aggiornati"
+	if canale == "lobby" {
+		tipo = "stanze_aggiornate"
+	}
 	conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
-	return conn.WriteJSON(map[string]string{"tipo": "partecipanti_aggiornati"})
+	return conn.WriteJSON(map[string]string{"tipo": tipo})
 }
 
 func (s *server) notifica(w http.ResponseWriter, r *http.Request) {
@@ -31,8 +35,8 @@ func (s *server) notifica(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mutex.Lock()
 	for conn, stanza := range s.connessioni {
-		if stanza == codice {
-			if err := inviaAvviso(conn); err != nil {
+		if stanza == codice || stanza == "lobby" {
+			if err := inviaAvviso(conn, stanza); err != nil {
 				conn.Close()
 				delete(s.connessioni, conn)
 			}

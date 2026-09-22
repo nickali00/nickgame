@@ -44,3 +44,14 @@ def elimina_utenti_stanza(codice):
 
 def elimina_stanza(codice):
     get_db().execute('DELETE FROM stanze WHERE codice = ?', (codice,))
+
+
+def stanze_disponibili():
+    rows = get_db().execute(
+        'SELECT stanze.codice, admin.username AS admin, COUNT(utenti.username) AS partecipanti '
+        'FROM stanze '
+        'JOIN utenti AS admin ON admin.stanza_codice = stanze.codice AND admin.is_admin = 1 '
+        'LEFT JOIN utenti ON utenti.stanza_codice = stanze.codice '
+        'GROUP BY stanze.codice, admin.username ORDER BY stanze.codice'
+    ).fetchall()
+    return [dict(row) for row in rows]

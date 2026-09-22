@@ -65,6 +65,19 @@ SQLite è incluso in Python. Al primo avvio vengono creati il database
 `python/instance/nickgame.sqlite` e la chiave locale che firma le sessioni.
 Questa cartella è esclusa da Git. Gli avvii successivi conservano i dati.
 
+## Stanze disponibili
+
+Sotto il form di accesso compaiono codice, admin e numero di partecipanti delle
+stanze disponibili. Inserisci lo username e premi “Entra” sulla stanza scelta:
+il codice viene compilato automaticamente e viene inviato il normale form.
+Rimane disponibile anche l'accesso inserendo manualmente il codice.
+
+Il canale WebSocket pubblico `lobby` aggiorna la lista quando una stanza viene
+creata o chiusa e quando qualcuno entra o esce. Il browser legge `/api/stanze`
+solo alla connessione, agli eventi o dopo un errore; non c'è polling periodico
+quando la connessione funziona. Lo username digitato viene conservato durante
+gli aggiornamenti. La lista è visibile anche prima del login.
+
 ## Dati e regole attuali
 
 - `stanze`: `codice` è una chiave primaria testuale di 6 cifre.
@@ -142,7 +155,8 @@ Avvia l'intero package con `go run .` dalla cartella `go`.
 ## Sincronizzazione in tempo reale
 
 1. Flask salva l'ingresso in SQLite e, dopo il commit, avvisa Go tramite HTTP.
-2. Go invia un evento WebSocket ai browser collegati alla stanza interessata.
+2. Go invia un evento WebSocket ai browser collegati alla stanza interessata
+   e un evento `stanze_aggiornate` ai browser sulla pagina di accesso.
 3. `python/static/stanza.js` riceve l'evento e legge l'elenco aggiornato da Flask.
 4. Il browser aggiorna solo l'elenco, senza ricaricare la pagina.
 

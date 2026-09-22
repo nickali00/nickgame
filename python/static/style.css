@@ -114,3 +114,42 @@ input:focus-visible, button:focus-visible {
 li {
     margin-bottom: 8px;
 }
+
+.stanze-disponibili {
+    margin-top: 18px;
+}
+
+.elenco-stanze {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.riga-stanza {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #3b3b3b;
+    border-radius: 6px;
+    background: #1c1c1c;
+}
+
+.riga-stanza div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.riga-stanza strong {
+    color: #e74c3c;
+}
+
+.riga-stanza p {
+    margin-top: 4px;
+    font-size: 0.86rem;
+}
+
+.riga-stanza button {
+    flex-shrink: 0;
+}
