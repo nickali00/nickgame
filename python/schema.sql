@@ -36,3 +36,40 @@ CREATE TABLE IF NOT EXISTS partite_forza4 (
     in_sala INTEGER NOT NULL DEFAULT 0 CHECK (in_sala IN (0, 1)),
     risultato INTEGER NOT NULL CHECK (risultato BETWEEN 0 AND 3)
 );
+
+INSERT INTO giochi (nome, max_giocatori) VALUES ('Quiz', 8)
+    ON CONFLICT(nome) DO NOTHING;
+
+-- Prima versione: cinque domande fisse, quattro opzioni numerate da 0 a 3.
+CREATE TABLE IF NOT EXISTS domande_quiz (
+    id INTEGER PRIMARY KEY,
+    testo TEXT NOT NULL,
+    opzione_a TEXT NOT NULL,
+    opzione_b TEXT NOT NULL,
+    opzione_c TEXT NOT NULL,
+    opzione_d TEXT NOT NULL,
+    corretta INTEGER NOT NULL CHECK (corretta BETWEEN 0 AND 3)
+);
+INSERT OR IGNORE INTO domande_quiz VALUES
+    (1, 'Quanto fa 7 × 8?', '54', '56', '58', '64', 1),
+    (2, 'Qual è la capitale della Francia?', 'Madrid', 'Lione', 'Parigi', 'Berlino', 2),
+    (3, 'Quanti lati ha un esagono?', '5', '8', '7', '6', 3),
+    (4, 'Quale pianeta è conosciuto come il pianeta rosso?', 'Marte', 'Venere', 'Giove', 'Saturno', 0),
+    (5, 'Quanti bit ci sono in un byte?', '4', '8', '16', '32', 1);
+
+CREATE TABLE IF NOT EXISTS partite_quiz (
+    stanza_codice TEXT PRIMARY KEY REFERENCES stanze(codice) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    domanda INTEGER NOT NULL DEFAULT 1 CHECK (domanda BETWEEN 1 AND 5),
+    in_sala INTEGER NOT NULL DEFAULT 0 CHECK (in_sala IN (0, 1)),
+    finita INTEGER NOT NULL DEFAULT 0 CHECK (finita IN (0, 1))
+);
+
+CREATE TABLE IF NOT EXISTS risposte_quiz (
+    stanza_codice TEXT NOT NULL REFERENCES partite_quiz(stanza_codice) ON DELETE CASCADE,
+    username TEXT NOT NULL REFERENCES utenti(username) ON DELETE CASCADE,
+    domanda INTEGER NOT NULL REFERENCES domande_quiz(id),
+    risposta INTEGER NOT NULL CHECK (risposta BETWEEN 0 AND 3),
+    punti INTEGER NOT NULL CHECK (punti IN (0, 1)),
+    PRIMARY KEY (stanza_codice, username, domanda)
+);

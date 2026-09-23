@@ -217,6 +217,12 @@ button:disabled {
     outline-offset: 3px;
 }
 
+.risposte-quiz { display: grid; gap: 10px; }
+.risposte-quiz button { text-align: left; overflow-wrap: anywhere; }
+.domanda-quiz { margin: 6px 0; }
+.soluzione-quiz { color: #fff; }
+.classifica-quiz span { white-space: nowrap; }
+
 .gioco-descrizione {
     display: flex;
     align-items: center;

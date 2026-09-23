@@ -4,7 +4,7 @@ Progetto per il corso di Advanced Programming Languages.
 
 ## Descrizione
 
-Stanze multiplayer con Forza 4 in Python e aggiornamenti tramite Go.
+Stanze multiplayer con Forza 4 e Quiz in Python e aggiornamenti tramite Go.
 
 ## Struttura
 
@@ -103,12 +103,12 @@ gli aggiornamenti. La lista è visibile anche prima del login.
 ## Catalogo giochi e scelta dell'admin
 
 La tabella `giochi` contiene nome e numero massimo di giocatori. Il primo elemento
-è **Forza 4**, massimo **2**. Ogni stanza conserva la scelta in `stanze.gioco_id`.
+è **Forza 4**, massimo **2**; è disponibile anche **Quiz**, massimo **8**. Ogni stanza conserva la scelta in `stanze.gioco_id`.
 Tutti i partecipanti vedono i giochi compatibili con il numero attuale di utenti;
 l'admin clicca sull'intera scheda per scegliere un gioco. La scelta viene evidenziata
 per tutti tramite Go, senza avviare la partita. In un pannello sotto il catalogo
 compare il pulsante Avvia, disponibile solo all'admin. Gli altri vedono la scelta
-e attendono. Servono 2 partecipanti per avviare Forza 4.
+e attendono. Servono almeno 2 partecipanti.
 Il controllo del ruolo viene ripetuto sul server; la scheda funziona anche da tastiera.
 
 Con tre o più partecipanti Forza 4 non viene mostrato. Se era già selezionato,
@@ -136,6 +136,29 @@ Se uno dei giocatori esce, la partita viene cancellata. Se entra un terzo
 partecipante, Forza 4 viene deselezionato e la partita annullata.
 Ricaricare la pagina o riavviare i server conserva invece la partita nel database.
 
+## Quiz
+
+Il Quiz è implementato in Python: regole e punteggi in `quiz.py`, query SQL in
+`repository_quiz.py`. Go riusa le notifiche della stanza per aggiornare tutti.
+Non richiede C# né nuove dipendenze.
+
+- Da 2 a 8 giocatori; sopra 8 il gioco non compare nel catalogo.
+- Cinque domande fisse salvate in SQLite, con quattro opzioni ciascuna e senza timer.
+- Una risposta per giocatore e domanda: un punto se corretta, zero altrimenti.
+- Soluzione e classifica compaiono solo quando tutti i partecipanti presenti hanno risposto.
+- Solo l'admin avvia, passa alla domanda successiva e mostra la classifica finale.
+- I pari merito sono consentiti. “Nuovo Quiz” azzera risposte e punteggi.
+- L'admin può riportare tutti nella sala e riprendere il quiz senza perdere le risposte.
+- Durante un quiz non concluso sono bloccati nuovi ingressi, anche quando è in pausa.
+- Chi esce viene rimosso dalla classifica e non blocca la domanda. Se rimane un solo
+  giocatore, il quiz viene annullato; chiudere la stanza elimina quiz e risposte.
+- Cambiare gioco annulla la partita precedente. Un reload o il riavvio dei server
+  conserva invece domande, risposte e pausa nel database.
+
+Le tabelle sono `domande_quiz`, `partite_quiz` e `risposte_quiz`. La soluzione
+corretta viene letta dal server: non si accettano punteggi inviati dal browser.
+Il primo avvio aggiorna lo schema senza cancellare gli utenti esistenti.
+
 ## Verifica
 
 I test sono conservati solo localmente in `python/tests/` e non sono inclusi
@@ -162,6 +185,8 @@ quando lo schema viene inizializzato nuovamente.
 - `servizi.py`: controlla le regole di accesso, genera i codici e assegna l'admin.
 - `forza4.py`: controlla avvio e turni e salva le mosse.
 - `regole_forza4.py`: applica le regole di Forza 4 senza Flask o SQL.
+- `quiz.py`: gestisce domande, risposte, punti e avanzamento del Quiz.
+- `repository_quiz.py`: contiene le query SQL del Quiz.
 - `repository.py`: contiene le query SQL per utenti, stanze, giochi e partite.
 - `connessione.py`: apre e chiude la connessione, inizializza lo schema e gestisce commit/rollback.
 - `schema.sql`: definisce tabelle e vincoli del database.

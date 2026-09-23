@@ -1,6 +1,7 @@
 """Pagine e API web di Nickgame."""
 import flask
 
+import quiz
 import forza4
 import configurazione
 import connessione
@@ -69,8 +70,12 @@ def logout():
 
 
 def stato_gioco(utente):
-    stato = forza4.stato(utente['stanza_codice'])
-    stato['gioco_corrente'] = repository.gioco_selezionato(utente['stanza_codice'])
+    gioco = repository.gioco_selezionato(utente['stanza_codice'])
+    if gioco is not None and gioco['nome'] == 'Quiz':
+        stato = quiz.stato(utente)
+    else:
+        stato = forza4.stato(utente['stanza_codice'])
+    stato['gioco_corrente'] = gioco
     stato['minimo_giocatori'] = 2
     return stato
 
@@ -167,13 +172,40 @@ def cambia_vista(azione):
         return flask.redirect(flask.url_for('login'))
     if azione not in ('stanza', 'riprendi'):
         flask.abort(404)
+    gioco = repository.gioco_selezionato(utente['stanza_codice'])
+    servizio = quiz if gioco is not None and gioco['nome'] == 'Quiz' else forza4
     try:
-        codice = forza4.cambia_vista(utente['username'], utente['accesso_id'], azione == 'stanza')
+        codice = servizio.cambia_vista(utente['username'], utente['accesso_id'], azione == 'stanza')
     except servizi.ErroreGioco as errore:
         flask.flash(str(errore))
     else:
         sincronizzazione.notifica_stanza(codice)
     return flask.redirect(flask.url_for('stanza'))
+
+
+@app.post('/quiz/<azione>')
+def azione_quiz(azione):
+    utente = utente_corrente()
+    if utente is None:
+        return flask.redirect(flask.url_for('login'))
+    username, accesso_id = utente['username'], utente['accesso_id']
+    partita_id = flask.request.form.get('partita_id')
+    numero = flask.request.form.get('domanda', type=int)
+    try:
+        if azione == 'avvia':
+            codice = quiz.avvia(username, accesso_id)
+        elif azione == 'rispondi':
+            risposta = flask.request.form.get('risposta', type=int)
+            codice = quiz.rispondi(username, accesso_id, partita_id, numero, risposta)
+        elif azione == 'prossima':
+            codice = quiz.prossima(username, accesso_id, partita_id, numero)
+        else:
+            flask.abort(404)
+    except servizi.ErroreGioco as errore:
+        flask.flash(str(errore))
+    else:
+        sincronizzazione.notifica_stanza(codice)
+    return flask.redirect(flask.url_for('stanza') + '#partita')
 
 
 @app.get('/api/stanze')

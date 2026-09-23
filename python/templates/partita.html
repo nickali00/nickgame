@@ -1,7 +1,11 @@
 {% if partita %}
-    {% include 'forza4.html' %}
+    {% if quiz_selezionato %}
+        {% include 'quiz.html' %}
+    {% else %}
+        {% include 'forza4.html' %}
+    {% endif %}
 {% elif gioco_corrente %}
-    {% set avvii = {'Forza 4': 'azione_forza4'} %}
+    {% set avvii = {'Forza 4': 'azione_forza4', 'Quiz': 'azione_quiz'} %}
     <section class="card pannello-giochi anteprima-gioco">
         <h2>{{ gioco_corrente.nome }}</h2>
         {% if utente.is_admin and gioco_corrente.nome in avvii %}
