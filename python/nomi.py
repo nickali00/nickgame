@@ -1,5 +1,6 @@
 """Regole di Nomi, cose, città: tre manche, con valutazione dell'admin."""
 import secrets
+import economia
 import unicodedata
 
 from connessione import transazione
@@ -130,6 +131,8 @@ def prossima(username, accesso_id, partita_id, turno):
             raise ErroreGioco('Convalida prima le risposte.')
         lettera = None if turno == 3 else lettera_casuale(partita['lettere'])
         dati.avanza(codice, lettera)
+        if turno == 3:
+            economia.premia_classifica(partita_id, 'Nomi, cose, città', dati.classifica(codice))
     return codice
 
 

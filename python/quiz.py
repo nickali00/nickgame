@@ -1,5 +1,6 @@
 """Regole del Quiz: avvio, risposte, punteggi e avanzamento delle domande."""
 import secrets
+import economia
 
 from connessione import transazione
 import repository
@@ -81,6 +82,8 @@ def prossima(username, accesso_id, partita_id, numero):
         if len(dati.risposte(codice, numero)) != repository.conta_partecipanti(codice):
             raise ErroreGioco('Attendi le risposte di tutti.')
         dati.avanza(codice, numero)
+        if numero == 5:
+            economia.premia_classifica(partita_id, 'Quiz', dati.classifica(codice))
     return codice
 
 

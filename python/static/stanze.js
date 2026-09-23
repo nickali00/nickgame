@@ -9,9 +9,10 @@ let aggiornamentoRichiesto = false;
 stanze.addEventListener("click", (evento) => {
     const pulsante = evento.target.closest("button[data-codice]");
     if (!pulsante) return;
-    const username = document.getElementById("username");
-    username.value = username.value.trim();
-    if (!username.reportValidity()) return;
+    if (!document.getElementById("accesso")) {
+        document.getElementById("codice-personale").focus();
+        return;
+    }
     document.getElementById("codice").value = pulsante.dataset.codice;
     document.getElementById("accesso").requestSubmit(document.getElementById("entra-con-codice"));
 });

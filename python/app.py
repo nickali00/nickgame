@@ -1,6 +1,12 @@
 """Pagine e API web di Nickgame."""
 import flask
 
+import avatar
+import economia
+import repository_economia
+import profili
+import repository_profili
+
 import justone
 import nomi
 import quiz
@@ -17,55 +23,89 @@ connessione.init_app(app)
 
 
 def utente_corrente():
-    # La sessione contiene lo username del browser che sta facendo la richiesta.
+    # Questo accesso riguarda la stanza, non il profilo permanente.
     username = flask.session.get('username')
     utente = repository.trova_utente(username)
-    # Il valore predefinito mantiene valide le sessioni precedenti all'aggiornamento.
     accesso_id = flask.session.get('accesso_id', username)
     if utente is None or utente['accesso_id'] != accesso_id:
-        flask.session.clear()
+        flask.session.pop('username', None)
+        flask.session.pop('accesso_id', None)
         return None
+    if flask.session.get('profilo_username') != username:
+        codice = profili.completa_vecchio_profilo(username)
+        if codice is None:
+            flask.session.pop('username', None)
+            flask.session.pop('accesso_id', None)
+            return None
+        flask.session['profilo_username'] = username
+        flask.session['codice_personale'] = codice
     return utente
+
+
+@app.after_request
+def non_memorizzare_pagine(risposta):
+    # Le pagine possono contenere il codice personale: non conservarle nella cache.
+    if flask.request.endpoint != 'static':
+        risposta.headers['Cache-Control'] = 'no-store'
+    return risposta
 
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if utente_corrente() is not None:
         return flask.redirect(flask.url_for('stanza'))
-
-    # GET: mostra il form vuoto. POST: elabora i dati inviati dal form.
-    if flask.request.method != 'POST':
-        return flask.render_template(
-            'login.html', errore=None, username='', codice='',
-            stanze=repository.stanze_disponibili()
-        )
-
-    username = flask.request.form.get('username', '').strip()
-    codice = flask.request.form.get('codice', '').strip()
-    azione = flask.request.form.get('azione')
-
-    try:
-        codice, accesso_id = servizi.accedi(username, azione, codice)
-    except servizi.ErroreAccesso as errore:
-        return flask.render_template(
-            'login.html', errore=str(errore), username=username, codice=codice,
-            stanze=repository.stanze_disponibili()
-        )
-
-    # Il servizio ha salvato i dati: ricordiamo l'utente e avvisiamo Go.
-    flask.session.clear()
-    flask.session['username'] = username
-    flask.session['accesso_id'] = accesso_id
-    sincronizzazione.notifica_stanza(codice)
-    return flask.redirect(flask.url_for('stanza'))
+    profilo = repository_profili.trova(flask.session.get('profilo_username'))
+    errore, username, codice = None, '', ''
+    if flask.request.method == 'POST':
+        azione = flask.request.form.get('azione')
+        try:
+            if profilo is None:
+                if azione == 'registra':
+                    username = flask.request.form.get('username', '').strip()
+                    username, personale = profili.crea(username)
+                elif azione == 'accedi':
+                    personale = flask.request.form.get('codice_personale', '').strip()
+                    username = profili.accedi(personale, flask.request.remote_addr)['username']
+                else:
+                    raise ValueError('Accedi al profilo prima di scegliere una stanza.')
+                flask.session.clear()
+                flask.session['profilo_username'] = username
+                flask.session['codice_personale'] = personale
+                # Se il profilo è già in una stanza, il nuovo browser la ritrova.
+                partecipazione = repository.trova_utente(username)
+                if partecipazione:
+                    flask.session['username'] = username
+                    flask.session['accesso_id'] = partecipazione['accesso_id']
+                return flask.redirect(flask.url_for('login'))
+            codice = flask.request.form.get('codice', '').strip()
+            username = profilo['username']
+            codice, accesso_id = servizi.accedi(username, azione, codice)
+            flask.session['username'] = username
+            flask.session['accesso_id'] = accesso_id
+            sincronizzazione.notifica_stanza(codice)
+            return flask.redirect(flask.url_for('stanza'))
+        except ValueError as problema:
+            errore = str(problema)
+    return flask.render_template(
+        'login.html', profilo=profilo, errore=errore, username=username,
+        codice=codice, stanze=repository.stanze_disponibili()
+    )
 
 
 @app.post('/logout')
 def logout():
+    # Una vecchia sessione deve poter leggere il nuovo codice prima di uscire.
+    vecchio_accesso = 'profilo_username' not in flask.session
+    utente = utente_corrente()
+    mostra_nuovo_codice = vecchio_accesso and utente is not None
     username = flask.session.get('username')
     accesso_id = flask.session.get('accesso_id', username)
     codice = servizi.esci(username, accesso_id)
-    flask.session.clear()
+    if mostra_nuovo_codice:
+        flask.session.pop('username', None)
+        flask.session.pop('accesso_id', None)
+    else:
+        flask.session.clear()
     if codice is not None:
         sincronizzazione.notifica_stanza(codice)
     return flask.redirect(flask.url_for('login'))
@@ -81,6 +121,10 @@ def stato_gioco(utente):
         stato = quiz.stato(utente)
     else:
         stato = forza4.stato(utente['stanza_codice'])
+    partita = stato.get('partita')
+    stato['premio_monete'] = repository_economia.premi_partita(
+        partita['id'], gioco['nome'], utente['username']
+    ) if partita and gioco else None
     stato['gioco_corrente'] = gioco
     stato['minimo_giocatori'] = 3 if gioco is not None and gioco['nome'] == 'Just One' else 2
     return stato
@@ -114,9 +158,53 @@ def stanza():
     elenco = repository.partecipanti_stanza(utente['stanza_codice'])
     return flask.render_template(
         'stanza.html', utente=utente, partecipanti=elenco,
+        avatar_scelto=avatar.carica(utente), catalogo_avatar=repository_economia.catalogo(utente['username']),
         giochi=repository.giochi_disponibili(utente['stanza_codice']),
         **stato_gioco(utente)
     )
+
+
+@app.context_processor
+def saldo_nelle_pagine():
+    return {'saldo_monete': repository_economia.saldo(flask.session.get('profilo_username'))}
+
+
+@app.post('/avatar/acquista')
+def acquista_avatar():
+    utente = utente_corrente()
+    if utente is None:
+        return flask.jsonify(errore='Accesso scaduto.'), 401
+    username = utente['username']
+    errore = None
+    try:
+        economia.acquista(username, flask.request.form.get('cosmetico_id'))
+    except ValueError as problema:
+        errore = str(problema)
+    return flask.jsonify(
+        errore=errore, saldo=repository_economia.saldo(username),
+        catalogo=repository_economia.catalogo(username)
+    ), 400 if errore else 200
+
+
+@app.get('/api/economia')
+def saldo_economia():
+    username = flask.session.get('profilo_username')
+    if repository_profili.trova(username) is None:
+        return flask.jsonify(errore='Accesso richiesto'), 401
+    return flask.jsonify(saldo=repository_economia.saldo(username),
+                         catalogo=repository_economia.catalogo(username))
+
+
+@app.post('/avatar')
+def salva_avatar():
+    utente = utente_corrente()
+    if utente is None:
+        return flask.jsonify(errore='Accesso scaduto.'), 401
+    try:
+        avatar.salva(utente, flask.request.form)
+    except ValueError as errore:
+        return flask.jsonify(errore=str(errore)), 400
+    return flask.jsonify(ok=True)
 
 
 @app.get('/stanza/giochi')

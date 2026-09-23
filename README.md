@@ -9,7 +9,7 @@ Stanze multiplayer con quattro giochi in Python e aggiornamenti tramite Go: Forz
 ## Struttura
 
 - `docs/`: requisiti e diario di sviluppo locali, esclusi dal repository.
-- `cpp/`: cartella riservata a eventuali componenti futuri.
+- `cpp/`: regole economiche per premi e acquisti dei cosmetici.
 - `csharp/`: componente C#, responsabilità da definire.
 - `python/`: interfaccia Flask e primo flusso di creazione/accesso alle stanze con SQLite.
 - `go/`: server WebSocket per notificare gli aggiornamenti delle stanze.
@@ -28,10 +28,36 @@ Apri http://127.0.0.1:50010. **Ctrl+C ferma entrambi**; se uno dei server si
 arresta, lo script chiude anche l'altro. Ferma prima eventuali server già avviati
 nei vecchi terminali: lo script non interrompe programmi che occupano le porte.
 
-Servono Python con Flask installato e Go. Se esiste `python/.venv`, lo script usa
+Servono Python con Flask installato, Go e g++ con supporto C++17. Se esiste `python/.venv`, lo script usa
 quel Python; altrimenti usa `python3`. Il binario Go viene compilato in
-`go/build/`, esclusa da Git. Per porte diverse si possono impostare
+`go/build/`; il modulo C++ in `cpp/build/`. Entrambe le cartelle sono escluse da Git. Per porte diverse si possono impostare
 `NICKGAME_PY_PORT` e `NICKGAME_GO_PORT` prima del comando.
+
+## Profili, monete e cosmetici
+
+Gli acquisti sono integrati in “Il tuo personaggio”, aperto dall’omino nella stanza.
+I profili iniziano con zero monete e possono usare gratuitamente ragazzo/ragazza,
+felpa arancione e jeans. Le frecce mostrano tutti gli oggetti: quelli non posseduti
+hanno un lucchetto con il prezzo. Premendolo si acquista il pezzo; Salva indossa
+il personaggio scelto. Gli acquisti restano anche se si annulla la modifica dell’avatar.
+
+- Vittoria: 30 monete. Pareggio o primo posto condiviso: 15. Sconfitta: 0.
+- Just One: 10 monete per parola indovinata a ciascun partecipante a fine partita.
+- Teste: 30 monete; corpi: 50; gambe: 40, salvo gli oggetti gratuiti.
+- Le partite abbandonate non danno premi. Ricaricare una pagina non accredita di nuovo.
+
+`cpp/main.cpp` legge i comandi; `cpp/economia.cpp` contiene le regole;
+`cpp/economia.hpp` dichiara le funzioni. Flask chiama l'eseguibile con `subprocess`,
+senza un terzo server. SQLite conserva portafogli, cosmetici, acquisti e premi;
+la conclusione di una partita e i relativi premi vengono salvati insieme.
+I pezzi già indossati prima dell'introduzione del negozio rimangono disponibili.
+
+Per l'avvio manuale compilare prima, dalla cartella del progetto:
+
+```bash
+mkdir -p cpp/build
+g++ -std=c++17 -Wall -Wextra -Werror -O2 cpp/main.cpp cpp/economia.cpp -o cpp/build/nickgame-economia
+```
 
 ## Avvio manuale e installazione delle dipendenze
 
@@ -68,15 +94,14 @@ Questa cartella è esclusa da Git. Gli avvii successivi conservano i dati.
 ## Stanze disponibili
 
 Sotto il form di accesso compaiono codice, admin e numero di partecipanti delle
-stanze disponibili. Inserisci lo username e premi “Entra” sulla stanza scelta:
+stanze disponibili. Accedi al profilo con il codice personale e premi “Entra” sulla stanza scelta:
 il codice viene compilato automaticamente e viene inviato il normale form.
 Rimane disponibile anche l'accesso inserendo manualmente il codice.
 
 Il canale WebSocket pubblico `lobby` aggiorna la lista quando una stanza viene
 creata o chiusa e quando qualcuno entra o esce. Il browser legge `/api/stanze`
 solo alla connessione, agli eventi o dopo un errore; non c'è polling periodico
-quando la connessione funziona. Lo username digitato viene conservato durante
-gli aggiornamenti. La lista è visibile anche prima del login.
+quando la connessione funziona. La lista è visibile anche prima del login.
 
 ## Dati e regole attuali
 
@@ -87,13 +112,14 @@ gli aggiornamenti. La lista è visibile anche prima del login.
 - Ogni utente appartiene a una sola stanza. Un indice impedisce due admin nella stessa stanza.
 - Gli username sono globalmente univoci e distinguono maiuscole e minuscole.
 - Il server assegna il ruolo admin; il form non può sceglierlo.
-- È un accesso con nickname, senza password: uno username occupato non può
-  essere recuperato da un altro browser. La sessione corrente permette di ritornare
-  nella propria stanza. Il recupero account non è ancora implementato.
-- “Esci dalla stanza” elimina l'utente e libera lo username.
+- Il profilo permanente si crea con uno username; il server assegna un codice personale
+  segreto di sei cifre per gli accessi successivi. È distinto dal codice stanza.
+  Conservarlo: non esiste ancora un recupero del codice perso.
+- “Esci dalla stanza” elimina la partecipazione temporanea. Profilo, monete, acquisti
+  e avatar rimangono salvati; lo username rimane riservato.
 - “Esci e chiudi stanza”, disponibile all'admin, elimina la stanza e tutti i suoi utenti.
   Go notifica il cambiamento; i browser dei partecipanti ricevono HTTP 401 da Flask
-  e tornano automaticamente al login. Le altre stanze restano attive.
+  e tornano alla pagina iniziale. I loro profili restano salvati. Le altre stanze restano attive.
 - I vecchi cookie non tornano validi quando uno username viene riutilizzato:
   Flask controlla anche `accesso_id`. Il database esistente viene aggiornato
   automaticamente senza cancellare utenti o stanze.

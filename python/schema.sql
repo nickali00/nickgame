@@ -138,3 +138,65 @@ CREATE TABLE IF NOT EXISTS indizi_justone (
     PRIMARY KEY (stanza_codice, turno, username),
     FOREIGN KEY (stanza_codice, turno) REFERENCES manche_justone(stanza_codice, turno) ON DELETE CASCADE
 );
+
+-- Il profilo e l'avatar rimangono anche quando il giocatore esce dalla stanza.
+CREATE TABLE IF NOT EXISTS profili (
+    username TEXT PRIMARY KEY NOT NULL CHECK (length(trim(username)) BETWEEN 1 AND 30),
+    codice_hash TEXT UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS tentativi_accesso (
+    indirizzo TEXT PRIMARY KEY,
+    numero INTEGER NOT NULL,
+    ultimo REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS avatar (
+    username TEXT PRIMARY KEY REFERENCES profili(username) ON DELETE CASCADE,
+    testa TEXT NOT NULL,
+    corpo TEXT NOT NULL,
+    piedi TEXT NOT NULL
+);
+
+-- Economia permanente: non dipende dalla durata delle stanze.
+CREATE TABLE IF NOT EXISTS portafogli (
+    username TEXT PRIMARY KEY REFERENCES profili(username) ON DELETE CASCADE,
+    saldo INTEGER NOT NULL DEFAULT 0 CHECK (saldo BETWEEN 0 AND 2147483647)
+);
+CREATE TABLE IF NOT EXISTS cosmetici (
+    id TEXT PRIMARY KEY,
+    parte TEXT NOT NULL CHECK (parte IN ('testa', 'corpo', 'piedi')),
+    immagine TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    prezzo INTEGER NOT NULL CHECK (prezzo >= 0),
+    UNIQUE(parte, immagine)
+);
+INSERT OR IGNORE INTO cosmetici VALUES
+    ('testa-ragazzo', 'testa', 'ragazzo', 'Ragazzo', 0),
+    ('testa-ragazza', 'testa', 'ragazza', 'Ragazza', 0),
+    ('testa-gatto', 'testa', 'gatto', 'Gatto', 30),
+    ('testa-zucca', 'testa', 'zucca', 'Zucca', 30),
+    ('testa-astronauta', 'testa', 'astronauta', 'Casco astronauta', 30),
+    ('testa-robot', 'testa', 'robot', 'Robot turchese', 30),
+    ('testa-robot-femminile', 'testa', 'robot-femminile', 'Robot rosa', 30),
+    ('corpo-felpa-arancione', 'corpo', 'felpa-arancione', 'Felpa arancione', 0),
+    ('corpo-robot', 'corpo', 'robot', 'Corpo robot', 50),
+    ('corpo-astronauta-rosa', 'corpo', 'astronauta-rosa', 'Tuta rosa', 50),
+    ('corpo-astronauta-turchese', 'corpo', 'astronauta-turchese', 'Tuta turchese', 50),
+    ('corpo-peluche-arancione', 'corpo', 'peluche-arancione', 'Corpo peluche', 50),
+    ('piedi-jeans-blu', 'piedi', 'jeans-blu', 'Jeans blu', 0),
+    ('piedi-robot', 'piedi', 'robot', 'Gambe robot', 40),
+    ('piedi-astronauta-rosa', 'piedi', 'astronauta-rosa', 'Pantaloni tuta rosa', 40),
+    ('piedi-astronauta-turchese', 'piedi', 'astronauta-turchese', 'Pantaloni tuta turchese', 40),
+    ('piedi-peluche-arancione', 'piedi', 'peluche-arancione', 'Zampe peluche', 40);
+CREATE TABLE IF NOT EXISTS acquisti (
+    username TEXT NOT NULL REFERENCES profili(username) ON DELETE CASCADE,
+    cosmetico_id TEXT NOT NULL REFERENCES cosmetici(id),
+    PRIMARY KEY(username, cosmetico_id)
+);
+CREATE TABLE IF NOT EXISTS premi (
+    partita_id TEXT NOT NULL,
+    gioco TEXT NOT NULL,
+    username TEXT NOT NULL REFERENCES profili(username) ON DELETE CASCADE,
+    monete INTEGER NOT NULL CHECK (monete >= 0),
+    PRIMARY KEY(partita_id, gioco, username)
+);

@@ -14,27 +14,45 @@
                 <img class="logo" src="{{ url_for('static', filename='icone/logo-trasparente.png') }}" alt="" width="240" height="240">
                 <span>NICKGAME</span>
             </h1>
-            <p>Scegli uno username, poi crea una stanza o entra con un codice.</p>
+            <p>{% if profilo %}Ciao {{ profilo.username }}! Crea una stanza o scegli dove entrare.
+               {% else %}Accedi al tuo profilo per ritrovare il tuo personaggio.{% endif %}</p>
         </header>
 
-        <form id="accesso" method="post" class="card" novalidate>
-            <h2>Accedi al gioco</h2>
-            {% if errore %}
-            <p class="errore" role="alert">{{ errore }}</p>
-            {% endif %}
+        {% if errore %}<p class="errore" role="alert">{{ errore }}</p>{% endif %}
+        {% if not profilo %}
+        <form method="post" class="card sezione-profilo">
+            <h2>Accedi al profilo</h2>
+            <label for="codice-personale">Codice personale</label>
+            <input id="codice-personale" name="codice_personale" type="password"
+                   inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}"
+                   autocomplete="current-password" placeholder="Le tue 6 cifre" required>
+            <button name="azione" value="accedi" class="btn-primary">Accedi</button>
+        </form>
+        <form method="post" class="card sezione-profilo">
+            <h2>Prima volta? Crea un profilo</h2>
             <label for="username">Username</label>
-            <input type="text" id="username" name="username" maxlength="30" value="{{ username }}" required>
-
+            <input id="username" name="username" maxlength="30" value="{{ username }}" autocomplete="username" required>
+            <p>Riceverai un codice personale di 6 cifre. Conservalo per ritrovare il tuo avatar.</p>
+            <button name="azione" value="registra" class="btn-secondary">Crea profilo</button>
+        </form>
+        {% else %}
+        <section class="card sezione-profilo">
+            <h2>Il tuo profilo: {{ profilo.username }}</h2>
+            {% include 'codice_personale.html' %}
+            <p><img class="icona-nickcoin" src="{{ url_for('static', filename='icone/nickcoin.png') }}" alt="" width="28" height="28"> Nickcoin: {{ saldo_monete }}</p>
+            <form method="post" action="{{ url_for('logout') }}">
+                <button class="btn-secondary">Esci dal profilo</button>
+            </form>
+        </section>
+        <form id="accesso" method="post" class="card" novalidate>
+            <h2>Scegli la stanza</h2>
             <button type="submit" name="azione" value="crea" class="btn-primary">Crea stanza</button>
-
             <label for="codice">Codice stanza</label>
-            <input type="text" id="codice" name="codice"
-                   value="{{ codice }}" inputmode="numeric" maxlength="6" pattern="[0-9]{6}"
-                   placeholder="Es. 004281" aria-describedby="aiuto-codice">
-            <small id="aiuto-codice">Inserisci le 6 cifre per entrare in una stanza.</small>
-
+            <input type="text" id="codice" name="codice" value="{{ codice }}"
+                   inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="Es. 004281">
             <button type="submit" name="azione" value="entra" id="entra-con-codice" class="btn-secondary">Entra</button>
         </form>
+        {% endif %}
         <section class="card stanze-disponibili" aria-labelledby="titolo-stanze">
             <h2 id="titolo-stanze">Stanze disponibili</h2>
             <ul id="stanze" class="elenco-stanze" tabindex="0" aria-labelledby="titolo-stanze"
@@ -52,7 +70,7 @@
                 {% endfor %}
             </ul>
             <p id="nessuna-stanza" {% if stanze %}hidden{% endif %}>Nessuna stanza disponibile. Crea la prima!</p>
-            <noscript>Per entrare, inserisci lo username e il codice nel form sopra.</noscript>
+            <noscript>Accedi al profilo, poi inserisci il codice stanza nel form sopra.</noscript>
         </section>
     </main>
     <script src="{{ url_for('static', filename='stanze.js') }}" defer></script>

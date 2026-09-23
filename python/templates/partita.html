@@ -24,3 +24,7 @@
         {% endif %}
     </section>
 {% endif %}
+
+{% if premio_monete is not none and premio_monete is defined %}
+<p class="premio-monete" role="status">Partita conclusa: <img class="icona-nickcoin" src="{{ url_for('static', filename='icone/nickcoin.png') }}" alt="" width="28" height="28"> +{{ premio_monete }} Nickcoin.</p>
+{% endif %}

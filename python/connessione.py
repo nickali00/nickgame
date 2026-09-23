@@ -21,6 +21,9 @@ def close_db(error=None):
 
 
 def init_db():
+    economia_nuova = get_db().execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='acquisti'"
+    ).fetchone() is None
     # root_path è la cartella dell'app, indipendentemente da dove viene avviata.
     with open(current_app.root_path + '/schema.sql', encoding='utf-8') as file:
         get_db().executescript(file.read())
@@ -45,6 +48,27 @@ def init_db():
     if 'in_sala' not in [colonna['name'] for colonna in colonne]:
         with db:
             db.execute('ALTER TABLE partite_forza4 ADD COLUMN in_sala INTEGER NOT NULL DEFAULT 0 CHECK (in_sala IN (0, 1))')
+
+    # Conserva gli avatar precedenti: il proprietario ora è il profilo permanente.
+    with transazione():
+        db.execute('INSERT OR IGNORE INTO profili (username) SELECT username FROM utenti')
+        collegamenti = db.execute('PRAGMA foreign_key_list(avatar)').fetchall()
+        if any(riga['table'] == 'utenti' for riga in collegamenti):
+            db.execute('ALTER TABLE avatar RENAME TO avatar_precedenti')
+            db.execute('CREATE TABLE avatar ('
+                       'username TEXT PRIMARY KEY REFERENCES profili(username) ON DELETE CASCADE, '
+                       'testa TEXT NOT NULL, corpo TEXT NOT NULL, piedi TEXT NOT NULL)')
+            db.execute('INSERT INTO avatar SELECT * FROM avatar_precedenti')
+            db.execute('DROP TABLE avatar_precedenti')
+        # All'introduzione del negozio conserviamo i pezzi già indossati.
+        if economia_nuova:
+            for parte in ('testa', 'corpo', 'piedi'):
+                db.execute(
+                    'INSERT OR IGNORE INTO acquisti (username, cosmetico_id) '
+                    'SELECT avatar.username, cosmetici.id FROM avatar JOIN cosmetici '
+                    'ON cosmetici.parte = ? AND cosmetici.immagine = avatar.' + parte,
+                    (parte,)
+                )
 
 
 def transazione():

@@ -32,6 +32,10 @@ for porta in sys.argv[1:]:
         sys.exit(f'Porta {porta} occupata o non valida. Ferma il vecchio server prima di riprovare.')
 PY
 
+# Compila il piccolo programma C++ chiamato da Flask per premi e acquisti.
+mkdir -p cpp/build
+g++ -std=c++17 -Wall -Wextra -Werror -O2 cpp/main.cpp cpp/economia.cpp -o cpp/build/nickgame-economia
+
 # Prepara database e chiave, poi compila Go: eseguire il binario permette
 # di fermare il server direttamente, senza lasciare figli di "go run" attivi.
 (cd python && "$python_bin" -c 'import app')

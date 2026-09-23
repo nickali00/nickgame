@@ -6,20 +6,30 @@
     <title>NICKGAME — Stanza</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icone/logo-trasparente.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='avatar-posizioni.css', v=2) }}">
 </head>
 <body>
     {% set vista_gioco = partita and not partita.in_sala %}
     <main>
-        <header>
+        <header class="intestazione-stanza">
             <div id="codice-stanza" class="codice-stanza" {% if vista_gioco %}hidden{% endif %}>
                 <span>Codice stanza</span>
                 <strong>{{ utente['stanza_codice'] }}</strong>
             </div>
+            <button id="apri-avatar" class="pulsante-avatar" type="button" aria-label="Personalizza personaggio" aria-haspopup="dialog">
+                <span class="avatar-figura avatar-mini">
+                    {% for parte, nome in avatar_scelto.items() %}
+                    <img data-mini="{{ parte }}" src="{{ url_for('static', filename='avatar/' ~ parte ~ '/' ~ nome ~ '.png', v=2) }}" alt="">
+                    {% endfor %}
+                </span>
+            </button>
             <h1 class="marchio">
                 <img class="logo" src="{{ url_for('static', filename='icone/logo-trasparente.png') }}" alt="" width="80" height="80">
                 <span>NICKGAME</span>
             </h1>
             <p id="saluto-stanza" {% if vista_gioco %}hidden{% endif %}>Ciao {{ utente['username'] }}! Sei nella stanza.</p>
+            <p class="monete"><img class="icona-nickcoin" src="{{ url_for('static', filename='icone/nickcoin.png') }}" alt="" width="28" height="28"> Nickcoin: <strong id="saldo-monete" data-url="{{ url_for('saldo_economia') }}">{{ saldo_monete }}</strong>
+            </p>
         </header>
         {% for messaggio in get_flashed_messages() %}
         <p class="errore" role="alert">{{ messaggio }}</p>
@@ -68,6 +78,8 @@
                 {% endif %}
             </form>
     </main>
+    {% include 'avatar.html' %}
+    <script src="{{ url_for('static', filename='avatar.js') }}" defer></script>
     <script src="{{ url_for('static', filename='stanza.js') }}" defer></script>
 </body>
 </html>

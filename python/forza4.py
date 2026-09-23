@@ -1,5 +1,6 @@
 """Gestione di Forza 4: accesso, turni e salvataggio delle mosse."""
 import secrets
+import economia
 
 from connessione import transazione
 import repository
@@ -71,6 +72,10 @@ def muovi(username, accesso_id, colonna, partita_id, griglia_precedente):
         except ValueError as errore:
             raise ErroreGioco(str(errore)) from errore
         repository.aggiorna_partita(codice, griglia, 3 - partita['turno'], risultato)
+        if risultato:
+            for colore, nome in [(1, partita['rosso']), (2, partita['giallo'])]:
+                esito = 'pareggio' if risultato == 3 else ('vittoria' if risultato == colore else 'sconfitta')
+                economia.premia(partita['id'], 'Forza 4', nome, esito)
     return codice
 
 

@@ -1,5 +1,6 @@
 """Just One cooperativo: una manche a testa, una sola parola per indizio."""
 import secrets
+import economia
 import unicodedata
 
 from connessione import transazione
@@ -131,6 +132,9 @@ def prossima(username, accesso_id, partita_id, turno):
             raise ErroreGioco('Attendi che il giocatore risponda o passi.')
         if turno == repository.conta_partecipanti(codice):
             dati.termina(codice)
+            for partecipante in repository.partecipanti_stanza(codice):
+                economia.premia(partita_id, 'Just One', partecipante['username'],
+                                'cooperativo', dati.punteggio(codice))
         else:
             nuova_manche(codice, turno + 1)
     return codice
