@@ -1,6 +1,7 @@
 """Pagine e API web di Nickgame."""
 import flask
 
+import nomi
 import quiz
 import forza4
 import configurazione
@@ -71,7 +72,9 @@ def logout():
 
 def stato_gioco(utente):
     gioco = repository.gioco_selezionato(utente['stanza_codice'])
-    if gioco is not None and gioco['nome'] == 'Quiz':
+    if gioco is not None and gioco['nome'] == 'Nomi, cose, città':
+        stato = nomi.stato(utente)
+    elif gioco is not None and gioco['nome'] == 'Quiz':
         stato = quiz.stato(utente)
     else:
         stato = forza4.stato(utente['stanza_codice'])
@@ -173,7 +176,10 @@ def cambia_vista(azione):
     if azione not in ('stanza', 'riprendi'):
         flask.abort(404)
     gioco = repository.gioco_selezionato(utente['stanza_codice'])
-    servizio = quiz if gioco is not None and gioco['nome'] == 'Quiz' else forza4
+    if gioco is not None and gioco['nome'] == 'Nomi, cose, città':
+        servizio = nomi
+    else:
+        servizio = quiz if gioco is not None and gioco['nome'] == 'Quiz' else forza4
     try:
         codice = servizio.cambia_vista(utente['username'], utente['accesso_id'], azione == 'stanza')
     except servizi.ErroreGioco as errore:
@@ -199,6 +205,32 @@ def azione_quiz(azione):
             codice = quiz.rispondi(username, accesso_id, partita_id, numero, risposta)
         elif azione == 'prossima':
             codice = quiz.prossima(username, accesso_id, partita_id, numero)
+        else:
+            flask.abort(404)
+    except servizi.ErroreGioco as errore:
+        flask.flash(str(errore))
+    else:
+        sincronizzazione.notifica_stanza(codice)
+    return flask.redirect(flask.url_for('stanza') + '#partita')
+
+
+@app.post('/nomi/<azione>')
+def azione_nomi(azione):
+    utente = utente_corrente()
+    if utente is None:
+        return flask.redirect(flask.url_for('login'))
+    username, accesso_id = utente['username'], utente['accesso_id']
+    partita_id = flask.request.form.get('partita_id')
+    turno = flask.request.form.get('turno', type=int)
+    try:
+        if azione == 'avvia':
+            codice = nomi.avvia(username, accesso_id)
+        elif azione == 'rispondi':
+            codice = nomi.rispondi(username, accesso_id, partita_id, turno, flask.request.form)
+        elif azione == 'valuta':
+            codice = nomi.valuta(username, accesso_id, partita_id, turno, flask.request.form.getlist('valide'))
+        elif azione == 'prossima':
+            codice = nomi.prossima(username, accesso_id, partita_id, turno)
         else:
             flask.abort(404)
     except servizi.ErroreGioco as errore:

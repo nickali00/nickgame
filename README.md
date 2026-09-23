@@ -4,7 +4,7 @@ Progetto per il corso di Advanced Programming Languages.
 
 ## Descrizione
 
-Stanze multiplayer con Forza 4 e Quiz in Python e aggiornamenti tramite Go.
+Stanze multiplayer con tre giochi in Python e aggiornamenti tramite Go: Forza 4, Quiz e Nomi, cose, città.
 
 ## Struttura
 
@@ -103,7 +103,7 @@ gli aggiornamenti. La lista è visibile anche prima del login.
 ## Catalogo giochi e scelta dell'admin
 
 La tabella `giochi` contiene nome e numero massimo di giocatori. Il primo elemento
-è **Forza 4**, massimo **2**; è disponibile anche **Quiz**, massimo **8**. Ogni stanza conserva la scelta in `stanze.gioco_id`.
+è **Forza 4**, massimo **2**; sono disponibili anche **Quiz** e **Nomi, cose, città**, massimo **8**. Ogni stanza conserva la scelta in `stanze.gioco_id`.
 Tutti i partecipanti vedono i giochi compatibili con il numero attuale di utenti;
 l'admin clicca sull'intera scheda per scegliere un gioco. La scelta viene evidenziata
 per tutti tramite Go, senza avviare la partita. In un pannello sotto il catalogo
@@ -159,6 +159,30 @@ Le tabelle sono `domande_quiz`, `partite_quiz` e `risposte_quiz`. La soluzione
 corretta viene letta dal server: non si accettano punteggi inviati dal browser.
 Il primo avvio aggiorna lo schema senza cancellare gli utenti esistenti.
 
+## Nomi, cose, città
+
+Gioco interamente Python, da 2 a 8 giocatori. L'admin lo avvia dal catalogo.
+La partita dura tre manche: ogni volta viene estratta una lettera diversa e si
+compilano Nomi, Cose e Città. Non c'è timer; si può lasciare una risposta vuota.
+
+Le risposte restano nascoste fino all'invio di tutti. L'admin spunta quelle valide
+per categoria e conferma i punteggi. Il server non accetta risposte vuote o con
+iniziale diversa dalla lettera estratta, anche se inviate manualmente come valide.
+Una risposta approvata vale 10 punti se unica nella categoria, 5 se uguale a quella
+di altri, 0 se non approvata. Maiuscole, accenti e spazi ripetuti non distinguono
+le risposte. La correttezza del significato viene valutata dall'admin, senza dizionario.
+
+L'admin avvia la manche successiva e, dopo la terza, mostra la classifica finale;
+i pari merito sono consentiti. “Nuova partita” azzera i punteggi.
+Gli aggiornamenti Go conservano testi in scrittura e spunte della valutazione.
+Le bozze non inviate non sono salvate nel database e si perdono ricaricando la pagina.
+
+Come nel Quiz, gli ingressi sono bloccati durante la partita, anche in pausa.
+Chi esce viene rimosso dalla classifica e non blocca le risposte attese; con meno
+di due partecipanti la partita viene annullata. I punti delle manche già valutate
+restano quelli assegnati prima dell'uscita. L'admin può tornare nella sala e
+riprendere per tutti, conservando i dati. Cambiare gioco cancella la partita precedente.
+
 ## Verifica
 
 I test sono conservati solo localmente in `python/tests/` e non sono inclusi
@@ -186,6 +210,8 @@ quando lo schema viene inizializzato nuovamente.
 - `forza4.py`: controlla avvio e turni e salva le mosse.
 - `regole_forza4.py`: applica le regole di Forza 4 senza Flask o SQL.
 - `quiz.py`: gestisce domande, risposte, punti e avanzamento del Quiz.
+- `nomi.py`: gestisce manche, convalida e punteggi di Nomi, cose, città.
+- `repository_nomi.py`: contiene le query SQL di Nomi, cose, città.
 - `repository_quiz.py`: contiene le query SQL del Quiz.
 - `repository.py`: contiene le query SQL per utenti, stanze, giochi e partite.
 - `connessione.py`: apre e chiude la connessione, inizializza lo schema e gestisce commit/rollback.

@@ -2,6 +2,7 @@
 import secrets
 
 import repository
+import repository_nomi
 import repository_quiz
 from connessione import transazione
 
@@ -36,6 +37,9 @@ def accedi(username, azione, codice=''):
             quiz = repository_quiz.partita(codice)
             if quiz is not None and not quiz['finita']:
                 raise ErroreAccesso('Quiz in corso. Attendi la fine della partita per entrare.')
+            nomi = repository_nomi.partita(codice)
+            if nomi is not None and not nomi['finita']:
+                raise ErroreAccesso('Partita in corso. Attendi la fine per entrare.')
         if azione == 'crea':
             while True:
                 numero = secrets.randbelow(1_000_000)
@@ -53,6 +57,7 @@ def accedi(username, azione, codice=''):
             repository.imposta_gioco(codice, None)
             repository.elimina_partita(codice)
             repository_quiz.elimina(codice)
+            repository_nomi.elimina(codice)
     return codice, accesso_id
 
 
@@ -72,6 +77,7 @@ def esci(username, accesso_id):
             repository.elimina_utente(username)
             if repository.conta_partecipanti(codice) < 2:
                 repository_quiz.elimina(codice)
+                repository_nomi.elimina(codice)
     return codice
 
 
@@ -101,6 +107,7 @@ def cambia_gioco(codice, gioco_id):
     if precedente is None or precedente['id'] != gioco_id:
         repository.elimina_partita(codice)
         repository_quiz.elimina(codice)
+        repository_nomi.elimina(codice)
     repository.imposta_gioco(codice, gioco_id)
 
 

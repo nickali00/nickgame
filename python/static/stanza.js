@@ -19,6 +19,29 @@ function aggiornaVista() {
     document.getElementById("partita").hidden = partita && !vistaGioco;
 }
 
+function aggiornaPannello(pannello, html) {
+    // Conserva il testo in scrittura e le spunte se partita, manche e fase sono uguali.
+    const form = pannello.querySelector("form[data-conserva]");
+    const campi = form ? Array.from(form.querySelectorAll("input:not([type=hidden])")) : [];
+    const attivo = document.activeElement;
+    const inizio = attivo?.selectionStart;
+    const fine = attivo?.selectionEnd;
+    pannello.innerHTML = html;
+    const nuovo = pannello.querySelector("form[data-conserva]");
+    if (!form || !nuovo || form.dataset.conserva !== nuovo.dataset.conserva) return;
+    for (const campo of campi) {
+        const sostituto = Array.from(nuovo.querySelectorAll("input")).find(input =>
+            input.name === campo.name && (campo.type !== "checkbox" || input.value === campo.value));
+        if (!sostituto) continue;
+        if (campo.type === "checkbox") sostituto.checked = campo.checked;
+        else sostituto.value = campo.value;
+        if (campo === attivo) {
+            sostituto.focus({preventScroll: true});
+            if (campo.type === "text") sostituto.setSelectionRange(inizio, fine);
+        }
+    }
+}
+
 async function aggiornaPartecipanti() {
     // Serializza le richieste per non mostrare una risposta vecchia dopo una nuova.
     aggiornamentoRichiesto = true;
@@ -55,7 +78,7 @@ async function aggiornaPartecipanti() {
                     return;
                 }
                 if (!rispostaPannello.ok) throw new Error("Pannello non disponibile");
-                pannello.innerHTML = await rispostaPannello.text();
+                aggiornaPannello(pannello, await rispostaPannello.text());
             }
             aggiornaVista();
         }

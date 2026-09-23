@@ -242,6 +242,17 @@ button:disabled {
     .icona-gioco { width: 48px; height: 48px; }
 }
 
+.form-nomi, .valutazione-nomi { display: grid; gap: 12px; }
+.lettera-nomi { color: #fff; font-size: 1.4rem; }
+.lettera-nomi strong { color: #f1c40f; font-size: 2rem; }
+.risposta-nomi { display: flex; align-items: center; gap: 12px; padding: 10px; background: #1c1c1c; border-radius: 6px; }
+.risposta-nomi input { width: 24px; height: 24px; min-height: 24px; flex-shrink: 0; accent-color: #e74c3c; }
+.risposta-nomi span, .risultati-nomi span { display: block; overflow-wrap: anywhere; }
+.risposta-nomi strong, .risultati-nomi strong { color: #fff; }
+.risultati-nomi { list-style: none; padding: 0; }
+.risultati-nomi li { padding: 8px; border-bottom: 1px solid #3b3b3b; overflow-wrap: anywhere; }
+.classifica-nomi span { white-space: nowrap; }
+
 .scheda-gioco { width: 100%; text-align: left; font-weight: normal; }
 .gioco-testo { min-width: 0; overflow-wrap: anywhere; }
 .gioco-testo > span { display: block; margin-top: 4px; font-size: 0.86rem; color: #aaa; }

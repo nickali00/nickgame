@@ -73,3 +73,28 @@ CREATE TABLE IF NOT EXISTS risposte_quiz (
     punti INTEGER NOT NULL CHECK (punti IN (0, 1)),
     PRIMARY KEY (stanza_codice, username, domanda)
 );
+
+INSERT INTO giochi (nome, max_giocatori) VALUES ('Nomi, cose, città', 8)
+    ON CONFLICT(nome) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS partite_nomi (
+    stanza_codice TEXT PRIMARY KEY REFERENCES stanze(codice) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    turno INTEGER NOT NULL DEFAULT 1 CHECK (turno BETWEEN 1 AND 3),
+    lettere TEXT NOT NULL,
+    valutato INTEGER NOT NULL DEFAULT 0 CHECK (valutato IN (0, 1)),
+    in_sala INTEGER NOT NULL DEFAULT 0 CHECK (in_sala IN (0, 1)),
+    finita INTEGER NOT NULL DEFAULT 0 CHECK (finita IN (0, 1))
+);
+
+CREATE TABLE IF NOT EXISTS risposte_nomi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    stanza_codice TEXT NOT NULL REFERENCES partite_nomi(stanza_codice) ON DELETE CASCADE,
+    username TEXT NOT NULL REFERENCES utenti(username) ON DELETE CASCADE,
+    turno INTEGER NOT NULL CHECK (turno BETWEEN 1 AND 3),
+    categoria TEXT NOT NULL CHECK (categoria IN ('nomi', 'cose', 'citta')),
+    testo TEXT NOT NULL CHECK (length(testo) <= 60),
+    valida INTEGER NOT NULL DEFAULT 0 CHECK (valida IN (0, 1)),
+    punti INTEGER NOT NULL DEFAULT 0 CHECK (punti IN (0, 5, 10)),
+    UNIQUE (stanza_codice, username, turno, categoria)
+);
