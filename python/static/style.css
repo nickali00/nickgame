@@ -31,6 +31,33 @@ h1 {
     font-weight: 900;
 }
 
+.marchio {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: clamp(1.65rem, 7vw, 3.4rem);
+}
+
+.logo {
+    width: clamp(56px, 14vw, 80px);
+    height: auto;
+    flex-shrink: 0;
+    border-radius: 16px;
+}
+
+.intestazione-accesso {
+    text-align: center;
+}
+
+.intestazione-accesso .marchio {
+    flex-direction: column;
+    font-size: clamp(2.2rem, 8vw, 4.2rem);
+}
+
+.intestazione-accesso .logo {
+    width: min(240px, 65vw);
+}
+
 p {
     margin: 0;
     color: #aaa;
@@ -123,6 +150,12 @@ li {
     list-style: none;
     margin: 0;
     padding: 0;
+}
+
+/* Scorre solo la lista delle stanze nella pagina di accesso. */
+#stanze {
+    max-height: min(360px, 50vh);
+    overflow-y: auto;
 }
 
 .riga-stanza {
@@ -262,3 +295,32 @@ button:disabled {
 .parola-justone { color: #f1c40f; font-size: 1.5rem; overflow-wrap: anywhere; }
 .indizi-justone { display: flex; flex-wrap: wrap; gap: 10px; list-style: none; padding: 0; }
 .indizi-justone li { background: #383838; padding: 10px; border-radius: 6px; overflow-wrap: anywhere; }
+
+/* Sala: codice in alto a sinistra, partecipanti e uscita in fondo. */
+.codice-stanza {
+    width: fit-content;
+    margin: 0 0 16px;
+    padding: 10px 14px;
+    border: 1px solid #3b3b3b;
+    border-radius: 10px;
+    background: #252525;
+    text-align: left;
+}
+.codice-stanza span { display: block; color: #aaa; font-size: 0.8rem; }
+.codice-stanza strong { font-size: 1.3rem; letter-spacing: 0.12em; }
+#partecipanti { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.partecipante {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #3b3b3b;
+    border-radius: 8px;
+    background: #1c1c1c;
+}
+.partecipante span { min-width: 0; overflow-wrap: anywhere; }
+.partecipante-admin { border-color: #e74c3c; background: #30201e; color: #ff7667; }
+.ruolo-admin { padding: 4px 8px; border-radius: 6px; background: #e74c3c; color: #151515; font-size: 0.8rem; }
+.logout-stanza { margin-top: 24px; text-align: left; }

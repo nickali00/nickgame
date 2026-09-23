@@ -12,6 +12,8 @@ function aggiornaVista() {
     const vistaGioco = partita && dati.dataset.inSala === "0";
     document.getElementById("sala").hidden = vistaGioco;
     document.getElementById("saluto-stanza").hidden = vistaGioco;
+    document.getElementById("codice-stanza").hidden = vistaGioco;
+    document.getElementById("logout-stanza").hidden = vistaGioco;
     const torna = document.getElementById("torna-stanza");
     const riprendi = document.getElementById("rientra-partita");
     if (torna) torna.hidden = !vistaGioco;
@@ -60,10 +62,15 @@ async function aggiornaPartecipanti() {
             const righe = partecipanti.map((utente) => {
                 const riga = document.createElement("li");
                 // textContent mostra il nome come testo, senza interpretarlo come HTML.
-                riga.textContent = utente.username;
+                riga.className = "partecipante";
+                const nome = document.createElement("span");
+                nome.textContent = utente.username;
+                riga.append(nome);
                 if (utente.is_admin) {
                     const ruolo = document.createElement("strong");
-                    ruolo.textContent = " — Admin";
+                    riga.classList.add("partecipante-admin");
+                    ruolo.className = "ruolo-admin";
+                    ruolo.textContent = "Admin";
                     riga.append(ruolo);
                 }
                 return riga;

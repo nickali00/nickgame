@@ -4,12 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nickgame — Accesso</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icone/logo-trasparente.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <main>
-        <header>
-            <h1>NICKGAME</h1>
+        <header class="intestazione-accesso">
+            <h1 class="marchio">
+                <img class="logo" src="{{ url_for('static', filename='icone/logo-trasparente.png') }}" alt="" width="240" height="240">
+                <span>NICKGAME</span>
+            </h1>
             <p>Scegli uno username, poi crea una stanza o entra con un codice.</p>
         </header>
 
@@ -33,7 +37,7 @@
         </form>
         <section class="card stanze-disponibili" aria-labelledby="titolo-stanze">
             <h2 id="titolo-stanze">Stanze disponibili</h2>
-            <ul id="stanze" class="elenco-stanze"
+            <ul id="stanze" class="elenco-stanze" tabindex="0" aria-labelledby="titolo-stanze"
                 data-url="{{ url_for('elenco_stanze') }}"
                 data-websocket="{{ config['GO_WEBSOCKET_URL'] }}/ws?stanza=lobby">
                 {% for stanza in stanze %}

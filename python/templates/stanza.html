@@ -4,13 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NICKGAME — Stanza</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icone/logo-trasparente.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     {% set vista_gioco = partita and not partita.in_sala %}
     <main>
         <header>
-            <h1>NICKGAME</h1>
+            <div id="codice-stanza" class="codice-stanza" {% if vista_gioco %}hidden{% endif %}>
+                <span>Codice stanza</span>
+                <strong>{{ utente['stanza_codice'] }}</strong>
+            </div>
+            <h1 class="marchio">
+                <img class="logo" src="{{ url_for('static', filename='icone/logo-trasparente.png') }}" alt="" width="80" height="80">
+                <span>NICKGAME</span>
+            </h1>
             <p id="saluto-stanza" {% if vista_gioco %}hidden{% endif %}>Ciao {{ utente['username'] }}! Sei nella stanza.</p>
         </header>
         {% for messaggio in get_flashed_messages() %}
@@ -19,25 +27,17 @@
         <span id="sincronizzazione" hidden data-url="{{ url_for('collegamento') }}"></span>
         <div id="sala" {% if vista_gioco %}hidden{% endif %}>
         <section class="card">
-            <h2>Codice stanza: {{ utente['stanza_codice'] }}</h2>
-            <p>Condividi questo codice con gli altri giocatori.</p>
-            <h3>Partecipanti</h3>
+            <h2>Partecipanti</h2>
             <ul id="partecipanti" data-url="{{ url_for('partecipanti') }}">
                 {% for partecipante in partecipanti %}
-                <li>
-                    {{ partecipante['username'] }}
-                    {% if partecipante['is_admin'] %}<strong> — Admin</strong>{% endif %}
+                <li class="partecipante{% if partecipante['is_admin'] %} partecipante-admin{% endif %}">
+                    <span>{{ partecipante['username'] }}</span>
+                    {% if partecipante['is_admin'] %}<strong class="ruolo-admin">Admin</strong>{% endif %}
                 </li>
                 {% endfor %}
             </ul>
             <noscript>Attiva JavaScript o ricarica la pagina per aggiornare i partecipanti.</noscript>
-            <form method="post" action="{{ url_for('logout') }}">
-                {% if utente['is_admin'] %}
-                <button type="submit" class="btn-primary">Esci e chiudi stanza</button>
-                {% else %}
-                <button type="submit" class="btn-secondary">Esci dalla stanza</button>
-                {% endif %}
-            </form>
+
         </section>
         <section id="giochi" class="card pannello-giochi" aria-labelledby="titolo-giochi"
                  data-url="{{ url_for('elenco_giochi') }}">
@@ -60,6 +60,13 @@
              {% if partita and not vista_gioco %}hidden{% endif %}>
             {% include 'partita.html' %}
         </div>
+            <form id="logout-stanza" class="logout-stanza" {% if vista_gioco %}hidden{% endif %} method="post" action="{{ url_for('logout') }}">
+                {% if utente['is_admin'] %}
+                <button type="submit" class="btn-secondary">Esci e chiudi stanza</button>
+                {% else %}
+                <button type="submit" class="btn-secondary">Esci dalla stanza</button>
+                {% endif %}
+            </form>
     </main>
     <script src="{{ url_for('static', filename='stanza.js') }}" defer></script>
 </body>
