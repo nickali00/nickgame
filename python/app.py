@@ -11,6 +11,7 @@ import justone
 import nomi
 import quiz
 import forza4
+import bot
 import configurazione
 import connessione
 import repository
@@ -27,7 +28,7 @@ def utente_corrente():
     username = flask.session.get('username')
     utente = repository.trova_utente(username)
     accesso_id = flask.session.get('accesso_id', username)
-    if utente is None or utente['accesso_id'] != accesso_id:
+    if utente is None or utente['accesso_id'] != accesso_id or utente['is_bot']:
         flask.session.pop('username', None)
         flask.session.pop('accesso_id', None)
         return None
@@ -274,8 +275,27 @@ def azione_forza4(azione):
     except servizi.ErroreGioco as errore:
         flask.flash(str(errore))
     else:
+        bot.programma(codice)
         sincronizzazione.notifica_stanza(codice)
     return flask.redirect(flask.url_for('stanza') + '#partita')
+
+
+@app.post('/bot/<azione>')
+def gestisci_bot(azione):
+    utente = utente_corrente()
+    if utente is None:
+        return flask.redirect(flask.url_for('login'))
+    if not utente['is_admin']:
+        flask.abort(403)
+    if azione not in ('aggiungi', 'rimuovi', 'riprova'):
+        flask.abort(404)
+    try:
+        codice = bot.gestisci(utente['username'], utente['accesso_id'], azione)
+    except servizi.ErroreGioco as errore:
+        flask.flash(str(errore))
+    else:
+        sincronizzazione.notifica_stanza(codice)
+    return flask.redirect(flask.url_for('stanza'))
 
 
 @app.post('/partita/<azione>')
@@ -297,6 +317,8 @@ def cambia_vista(azione):
     except servizi.ErroreGioco as errore:
         flask.flash(str(errore))
     else:
+        if servizio is forza4:
+            bot.programma(codice)
         sincronizzazione.notifica_stanza(codice)
     return flask.redirect(flask.url_for('stanza'))
 

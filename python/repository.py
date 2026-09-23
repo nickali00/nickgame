@@ -19,16 +19,16 @@ def inserisci_stanza(codice):
     get_db().execute('INSERT INTO stanze (codice) VALUES (?)', (codice,))
 
 
-def inserisci_utente(username, codice, is_admin, accesso_id, ospite=False):
+def inserisci_utente(username, codice, is_admin, accesso_id, ospite=False, bot=False):
     get_db().execute(
-        'INSERT INTO utenti (username, stanza_codice, is_admin, accesso_id, is_ospite) VALUES (?, ?, ?, ?, ?)',
-        (username, codice, int(is_admin), accesso_id, int(ospite)),
+        'INSERT INTO utenti (username, stanza_codice, is_admin, accesso_id, is_ospite, is_bot) VALUES (?, ?, ?, ?, ?, ?)',
+        (username, codice, int(is_admin), accesso_id, int(ospite), int(bot)),
     )
 
 
 def partecipanti_stanza(codice):
     rows = get_db().execute(
-        'SELECT username, is_admin FROM utenti WHERE stanza_codice = ? '
+        'SELECT username, is_admin, is_bot FROM utenti WHERE stanza_codice = ? '
         'ORDER BY is_admin DESC, username', (codice,)
     ).fetchall()
     return [dict(row) for row in rows]
@@ -71,7 +71,8 @@ def giochi_disponibili(codice):
         'FROM giochi JOIN stanze ON stanze.codice = ? '
         'WHERE giochi.max_giocatori >= ? ORDER BY giochi.nome', (codice, totale)
     ).fetchall()
-    return [dict(row) for row in rows]
+    bot = any(u['is_bot'] for u in partecipanti_stanza(codice))
+    return [dict(row) for row in rows if not bot or row['nome'] == 'Forza 4']
 
 
 def trova_gioco(gioco_id):
@@ -121,6 +122,8 @@ def aggiorna_partita(codice, griglia, turno, risultato):
 def imposta_sala(codice, in_sala):
     get_db().execute('UPDATE partite_forza4 SET in_sala = ? WHERE stanza_codice = ?',
                      (int(in_sala), codice))
+    if in_sala:
+        get_db().execute('DELETE FROM richieste_bot WHERE stanza_codice = ?', (codice,))
 
 
 def trova_gioco_per_nome(nome):

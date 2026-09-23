@@ -43,9 +43,22 @@
                 <li class="partecipante{% if partecipante['is_admin'] %} partecipante-admin{% endif %}">
                     <span>{{ partecipante['username'] }}</span>
                     {% if partecipante['is_admin'] %}<strong class="ruolo-admin">Admin</strong>{% endif %}
+                    {% if partecipante['is_bot'] %}<strong>Rete neurale</strong>{% endif %}
                 </li>
                 {% endfor %}
             </ul>
+            {% if utente.is_admin %}
+            <div id="comandi-bot">
+                <form method="post" action="{{ url_for('gestisci_bot', azione='aggiungi') }}"
+                      data-bot-aggiungi {% if partecipanti|length != 1 %}hidden{% endif %}>
+                    <button class="btn-secondary">Aggiungi giocatore AI · Forza 4</button>
+                </form>
+                <form method="post" action="{{ url_for('gestisci_bot', azione='rimuovi') }}"
+                      data-bot-rimuovi {% if not partecipanti|selectattr('is_bot')|list %}hidden{% endif %}>
+                    <button class="btn-secondary">Rimuovi giocatore AI</button>
+                </form>
+            </div>
+            {% endif %}
             <noscript>Attiva JavaScript o ricarica la pagina per aggiornare i partecipanti.</noscript>
 
         </section>

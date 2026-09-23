@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS utenti (
         CHECK (length(trim(username)) BETWEEN 1 AND 30),
     accesso_id TEXT NOT NULL,
     is_ospite INTEGER NOT NULL DEFAULT 0 CHECK (is_ospite IN (0, 1)),
+    is_bot INTEGER NOT NULL DEFAULT 0 CHECK (is_bot IN (0, 1)),
     stanza_codice TEXT NOT NULL REFERENCES stanze(codice),
     is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0, 1))
 );
@@ -36,6 +37,14 @@ CREATE TABLE IF NOT EXISTS partite_forza4 (
     turno INTEGER NOT NULL CHECK (turno IN (1, 2)),
     in_sala INTEGER NOT NULL DEFAULT 0 CHECK (in_sala IN (0, 1)),
     risultato INTEGER NOT NULL CHECK (risultato BETWEEN 0 AND 3)
+);
+
+-- Il token identifica una richiesta al modello: una risposta vecchia non può giocare.
+CREATE TABLE IF NOT EXISTS richieste_bot (
+    stanza_codice TEXT PRIMARY KEY REFERENCES partite_forza4(stanza_codice) ON DELETE CASCADE,
+    token TEXT NOT NULL,
+    stato TEXT NOT NULL CHECK (stato IN ('attesa', 'errore')),
+    messaggio TEXT NOT NULL DEFAULT ''
 );
 
 INSERT INTO giochi (nome, max_giocatori) VALUES ('Quiz', 8)

@@ -9,7 +9,7 @@ Stanze multiplayer con quattro giochi in Python e aggiornamenti tramite Go: Forz
 ## Struttura
 
 - `docs/`: requisiti e diario di sviluppo locali, esclusi dal repository.
-- `cpp/`: regole economiche per premi e acquisti dei cosmetici.
+- `cpp/`: regole economiche e inferenza della rete neurale di Forza 4.
 - `csharp/`: componente C#, responsabilità da definire.
 - `python/`: interfaccia Flask e primo flusso di creazione/accesso alle stanze con SQLite.
 - `go/`: server WebSocket per notificare gli aggiornamenti delle stanze.
@@ -170,6 +170,51 @@ Chi gioca invia un normale form e torna al pannello della partita.
 Se uno dei giocatori esce, la partita viene cancellata. Se entra un terzo
 partecipante, Forza 4 viene deselezionato e la partita annullata.
 Ricaricare la pagina o riavviare i server conserva invece la partita nel database.
+
+## Giocatore neurale per Forza 4
+
+Quando è solo nella stanza, l'admin può premere **Aggiungi giocatore AI**.
+NickBot occupa il secondo posto e gioca con una piccola rete neurale locale.
+Non possiede un profilo o un portafoglio; l'umano registrato conserva i normali
+premi. Per accogliere altri giocatori o cambiare gioco, l'admin deve rimuovere
+il bot: questo annulla anche la partita corrente.
+
+La rete ha **84 ingressi, due strati intermedi da 128 e 64 neuroni, 7 uscite**
+e 19.591 parametri. I primi 42 ingressi indicano le proprie pedine, gli altri
+42 quelle avversarie. C++ calcola somme pesate e ReLU; sceglie il valore più
+alto fra le colonne libere. Non simula mosse future, non applica correzioni
+tattiche e non chiama un LLM. Le colonne piene sono escluse perché non sono
+mosse consentite. Python verifica comunque la legalità prima di salvare.
+
+- `cpp/bot/main.cpp`: riceve griglia e colore e restituisce la colonna (0–6).
+- `cpp/bot/rete_forza4.cpp` e `.hpp`: caricano i pesi ed eseguono la rete.
+- `modelli/forza4/pesi.txt`: pesi già allenati, inclusi nel progetto.
+- `python/bot.py`: gestisce partecipante e calcolo del turno in background.
+- `python/repository_bot.py`: query per le richieste AI.
+- `allenamento/`: strumenti separati per generare esempi, allenare e valutare.
+
+`./run.sh` compila anche la rete con la sola libreria standard C++17:
+
+```bash
+mkdir -p cpp/build
+g++ -std=c++17 -Wall -Wextra -Werror -O2 cpp/bot/main.cpp cpp/bot/rete_forza4.cpp -o cpp/build/nickgame-bot
+```
+
+Non servono PyTorch, GPU, libcurl, chiavi o OmniProxy per giocare. La precedente
+configurazione locale `python/instance/bot.json` non viene più letta.
+PyTorch e NumPy servono soltanto per rifare l'allenamento: istruzioni in
+[allenamento/README.md](allenamento/README.md).
+
+L'insegnante usa una ricerca limitata delle mosse **solo per generare il dataset**;
+non fa parte del percorso di gioco. Una rete piccola non garantisce mosse perfette:
+le misure e i limiti del modello distribuito sono in [modelli/forza4](modelli/forza4).
+
+Turno, partita, griglia e token vengono ricontrollati prima di applicare la mossa.
+Pausa, rimozione e chiusura della stanza invalidano le risposte pendenti. Go
+aggiorna i browser. Alla rivincita il bot può iniziare per primo. Dopo un
+riavvio, un turno interrotto mostra **Riprova turno AI**. Non ci sono mosse
+casuali di riserva se il file dei pesi manca o il calcolo fallisce.
+La gestione dei thread è pensata per il processo Flask singolo di `run.sh`.
 
 ## Quiz
 

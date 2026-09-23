@@ -38,6 +38,8 @@ def accedi(username, azione, codice='', ospite=False):
         if azione == 'entra' and not repository.stanza_esiste(codice):
             raise ErroreAccesso('Stanza non trovata. Controlla il codice.')
         if azione == 'entra':
+            if any(u['is_bot'] for u in repository.partecipanti_stanza(codice)):
+                raise ErroreAccesso('La stanza ha un giocatore AI. L’admin deve rimuoverlo prima di altri ingressi.')
             quiz = repository_quiz.partita(codice)
             if quiz is not None and not quiz['finita']:
                 raise ErroreAccesso('Quiz in corso. Attendi la fine della partita per entrare.')
@@ -113,6 +115,10 @@ def prepara_gioco(username, accesso_id, nome):
 
 def cambia_gioco(codice, gioco_id):
     # Chiamata dentro la transazione di scelta o avvio.
+    if any(u['is_bot'] for u in repository.partecipanti_stanza(codice)):
+        gioco = repository.trova_gioco(gioco_id)
+        if gioco is None or gioco['nome'] != 'Forza 4':
+            raise ErroreGioco('Rimuovi il giocatore AI per scegliere un altro gioco.')
     precedente = repository.gioco_selezionato(codice)
     if precedente is None or precedente['id'] != gioco_id:
         repository.elimina_partita(codice)

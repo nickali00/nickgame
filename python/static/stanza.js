@@ -66,6 +66,11 @@ async function aggiornaPartecipanti() {
                 const nome = document.createElement("span");
                 nome.textContent = utente.username;
                 riga.append(nome);
+                if (utente.is_bot) {
+                    const ruolo = document.createElement("strong");
+                    ruolo.textContent = "Rete neurale";
+                    riga.append(ruolo);
+                }
                 if (utente.is_admin) {
                     const ruolo = document.createElement("strong");
                     riga.classList.add("partecipante-admin");
@@ -76,6 +81,10 @@ async function aggiornaPartecipanti() {
                 return riga;
             });
             elenco.replaceChildren(...righe);
+            const aggiungiBot = document.querySelector("[data-bot-aggiungi]");
+            const rimuoviBot = document.querySelector("[data-bot-rimuovi]");
+            if (aggiungiBot) aggiungiBot.hidden = partecipanti.length !== 1;
+            if (rimuoviBot) rimuoviBot.hidden = !partecipanti.some(utente => utente.is_bot);
             // Il server genera anche i pulsanti corretti per admin e partecipanti.
             for (const id of ["giochi", "partita"]) {
                 const pannello = document.getElementById(id);

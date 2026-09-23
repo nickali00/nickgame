@@ -4,6 +4,7 @@ import economia
 
 from connessione import transazione
 import repository
+import repository_bot
 from servizi import ErroreGioco, prepara_gioco
 from regole_forza4 import gioca
 
@@ -14,6 +15,8 @@ def stato(codice):
         'forza4_selezionato': gioco is not None and gioco['nome'] == 'Forza 4',
         'partita': repository.partita_forza4(codice),
         'numero_partecipanti': repository.conta_partecipanti(codice),
+        'bot': repository_bot.trova(codice),
+        'richiesta_bot': repository_bot.richiesta(codice),
     }
 
 
@@ -50,10 +53,14 @@ def avvia(username, accesso_id):
     return codice
 
 
-def muovi(username, accesso_id, colonna, partita_id, griglia_precedente):
+def muovi(username, accesso_id, colonna, partita_id, griglia_precedente, token_bot=None):
     with transazione():
         utente = verifica_utente(username, accesso_id)
         codice = utente['stanza_codice']
+        if utente['is_bot']:
+            richiesta = repository_bot.richiesta(codice)
+            if not richiesta or richiesta['token'] != token_bot or richiesta['stato'] != 'attesa':
+                raise ErroreGioco('Richiesta AI annullata.')
         partita = repository.partita_forza4(codice)
         if partita is None or partita['risultato'] != 0:
             raise ErroreGioco('Nessuna partita in corso.')
@@ -72,6 +79,7 @@ def muovi(username, accesso_id, colonna, partita_id, griglia_precedente):
         except ValueError as errore:
             raise ErroreGioco(str(errore)) from errore
         repository.aggiorna_partita(codice, griglia, 3 - partita['turno'], risultato)
+        repository_bot.elimina(codice)
         if risultato:
             for colore, nome in [(1, partita['rosso']), (2, partita['giallo'])]:
                 esito = 'pareggio' if risultato == 3 else ('vittoria' if risultato == colore else 'sconfitta')

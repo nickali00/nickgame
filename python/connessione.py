@@ -42,6 +42,15 @@ def init_db():
         with db:
             db.execute('ALTER TABLE utenti ADD COLUMN is_ospite INTEGER NOT NULL DEFAULT 0')
 
+    if 'is_bot' not in nomi:
+        with db:
+            db.execute('ALTER TABLE utenti ADD COLUMN is_bot INTEGER NOT NULL DEFAULT 0')
+
+    # Dopo un riavvio i vecchi thread non esistono più: l'admin può riprovare.
+    with db:
+        db.execute("UPDATE richieste_bot SET stato = 'errore', messaggio = 'Server riavviato. Premi Riprova.' "
+                   "WHERE stato = 'attesa'")
+
     colonne = db.execute('PRAGMA table_info(stanze)').fetchall()
     nomi = [colonna['name'] for colonna in colonne]
     if 'gioco_id' not in nomi:

@@ -35,6 +35,8 @@ PY
 # Compila il piccolo programma C++ chiamato da Flask per premi e acquisti.
 mkdir -p cpp/build
 g++ -std=c++17 -Wall -Wextra -Werror -O2 cpp/main.cpp cpp/economia.cpp -o cpp/build/nickgame-economia
+# La rete usa soltanto la libreria standard C++ e i pesi già allenati.
+g++ -std=c++17 -Wall -Wextra -Werror -O2 cpp/bot/main.cpp cpp/bot/rete_forza4.cpp -o cpp/build/nickgame-bot
 
 # Prepara database e chiave, poi compila Go: eseguire il binario permette
 # di fermare il server direttamente, senza lasciare figli di "go run" attivi.
