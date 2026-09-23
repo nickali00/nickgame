@@ -2,6 +2,7 @@
 import secrets
 
 import repository
+import repository_justone
 import repository_nomi
 import repository_quiz
 from connessione import transazione
@@ -40,6 +41,9 @@ def accedi(username, azione, codice=''):
             nomi = repository_nomi.partita(codice)
             if nomi is not None and not nomi['finita']:
                 raise ErroreAccesso('Partita in corso. Attendi la fine per entrare.')
+            justone = repository_justone.partita(codice)
+            if justone is not None and not justone['finita']:
+                raise ErroreAccesso('Just One in corso. Attendi la fine per entrare.')
         if azione == 'crea':
             while True:
                 numero = secrets.randbelow(1_000_000)
@@ -58,6 +62,7 @@ def accedi(username, azione, codice=''):
             repository.elimina_partita(codice)
             repository_quiz.elimina(codice)
             repository_nomi.elimina(codice)
+            repository_justone.elimina(codice)
     return codice, accesso_id
 
 
@@ -74,6 +79,8 @@ def esci(username, accesso_id):
             repository.elimina_utenti_stanza(codice)
             repository.elimina_stanza(codice)
         else:
+            # Just One richiede lo stesso gruppo per tutta la rotazione.
+            repository_justone.elimina(codice)
             repository.elimina_utente(username)
             if repository.conta_partecipanti(codice) < 2:
                 repository_quiz.elimina(codice)
@@ -95,7 +102,7 @@ def prepara_gioco(username, accesso_id, nome):
         raise ErroreGioco('Gioco non trovato.')
     codice = utente['stanza_codice']
     totale = repository.conta_partecipanti(codice)
-    minimo = 2
+    minimo = 3 if nome == 'Just One' else 2
     if totale < minimo or totale > gioco['max_giocatori']:
         raise ErroreGioco(f"Servono da {minimo} a {gioco['max_giocatori']} giocatori.")
     cambia_gioco(codice, gioco['id'])
@@ -108,6 +115,7 @@ def cambia_gioco(codice, gioco_id):
         repository.elimina_partita(codice)
         repository_quiz.elimina(codice)
         repository_nomi.elimina(codice)
+        repository_justone.elimina(codice)
     repository.imposta_gioco(codice, gioco_id)
 
 

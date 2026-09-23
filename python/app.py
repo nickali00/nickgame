@@ -1,6 +1,7 @@
 """Pagine e API web di Nickgame."""
 import flask
 
+import justone
 import nomi
 import quiz
 import forza4
@@ -72,14 +73,16 @@ def logout():
 
 def stato_gioco(utente):
     gioco = repository.gioco_selezionato(utente['stanza_codice'])
-    if gioco is not None and gioco['nome'] == 'Nomi, cose, città':
+    if gioco is not None and gioco['nome'] == 'Just One':
+        stato = justone.stato(utente)
+    elif gioco is not None and gioco['nome'] == 'Nomi, cose, città':
         stato = nomi.stato(utente)
     elif gioco is not None and gioco['nome'] == 'Quiz':
         stato = quiz.stato(utente)
     else:
         stato = forza4.stato(utente['stanza_codice'])
     stato['gioco_corrente'] = gioco
-    stato['minimo_giocatori'] = 2
+    stato['minimo_giocatori'] = 3 if gioco is not None and gioco['nome'] == 'Just One' else 2
     return stato
 
 
@@ -130,6 +133,7 @@ def elenco_giochi():
     return risposta
 
 
+
 @app.get('/stanza/partita')
 def pannello_partita():
     utente = utente_corrente()
@@ -176,7 +180,9 @@ def cambia_vista(azione):
     if azione not in ('stanza', 'riprendi'):
         flask.abort(404)
     gioco = repository.gioco_selezionato(utente['stanza_codice'])
-    if gioco is not None and gioco['nome'] == 'Nomi, cose, città':
+    if gioco is not None and gioco['nome'] == 'Just One':
+        servizio = justone
+    elif gioco is not None and gioco['nome'] == 'Nomi, cose, città':
         servizio = nomi
     else:
         servizio = quiz if gioco is not None and gioco['nome'] == 'Quiz' else forza4
@@ -231,6 +237,33 @@ def azione_nomi(azione):
             codice = nomi.valuta(username, accesso_id, partita_id, turno, flask.request.form.getlist('valide'))
         elif azione == 'prossima':
             codice = nomi.prossima(username, accesso_id, partita_id, turno)
+        else:
+            flask.abort(404)
+    except servizi.ErroreGioco as errore:
+        flask.flash(str(errore))
+    else:
+        sincronizzazione.notifica_stanza(codice)
+    return flask.redirect(flask.url_for('stanza') + '#partita')
+
+
+@app.post('/justone/<azione>')
+def azione_justone(azione):
+    utente = utente_corrente()
+    if utente is None:
+        return flask.redirect(flask.url_for('login'))
+    username, accesso_id = utente['username'], utente['accesso_id']
+    partita_id = flask.request.form.get('partita_id')
+    turno = flask.request.form.get('turno', type=int)
+    try:
+        if azione == 'avvia':
+            codice = justone.avvia(username, accesso_id)
+        elif azione == 'indizio':
+            codice = justone.invia_indizio(username, accesso_id, partita_id, turno, flask.request.form.get('indizio', ''))
+        elif azione == 'indovina':
+            testo = '' if flask.request.form.get('passa') else flask.request.form.get('tentativo', '')
+            codice = justone.indovina(username, accesso_id, partita_id, turno, testo)
+        elif azione == 'prossima':
+            codice = justone.prossima(username, accesso_id, partita_id, turno)
         else:
             flask.abort(404)
     except servizi.ErroreGioco as errore:

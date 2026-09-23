@@ -258,3 +258,7 @@ button:disabled {
 .gioco-testo > span { display: block; margin-top: 4px; font-size: 0.86rem; color: #aaa; }
 .gioco-testo > .gioco-selezionato { color: #ffb7ae; }
 .scheda-gioco[aria-pressed="true"], .scheda-selezionata { border-color: #e74c3c; background: #30201e; }
+.form-justone { display: grid; gap: 12px; }
+.parola-justone { color: #f1c40f; font-size: 1.5rem; overflow-wrap: anywhere; }
+.indizi-justone { display: flex; flex-wrap: wrap; gap: 10px; list-style: none; padding: 0; }
+.indizi-justone li { background: #383838; padding: 10px; border-radius: 6px; overflow-wrap: anywhere; }

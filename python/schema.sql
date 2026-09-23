@@ -98,3 +98,43 @@ CREATE TABLE IF NOT EXISTS risposte_nomi (
     punti INTEGER NOT NULL DEFAULT 0 CHECK (punti IN (0, 5, 10)),
     UNIQUE (stanza_codice, username, turno, categoria)
 );
+
+INSERT INTO giochi (nome, max_giocatori) VALUES ('Just One', 8)
+    ON CONFLICT(nome) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS parole_justone (
+    id INTEGER PRIMARY KEY,
+    testo TEXT NOT NULL UNIQUE
+);
+INSERT OR IGNORE INTO parole_justone (testo) VALUES
+    ('montagna'), ('cioccolato'), ('pianoforte'), ('astronauta'),
+    ('biblioteca'), ('girasole'), ('vulcano'), ('ombrello'),
+    ('castello'), ('delfino'), ('bicicletta'), ('deserto'),
+    ('arcobaleno'), ('farfalla'), ('orologio'), ('gelato');
+
+CREATE TABLE IF NOT EXISTS partite_justone (
+    stanza_codice TEXT PRIMARY KEY REFERENCES stanze(codice) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    turno INTEGER NOT NULL DEFAULT 1 CHECK (turno BETWEEN 1 AND 8),
+    in_sala INTEGER NOT NULL DEFAULT 0 CHECK (in_sala IN (0, 1)),
+    finita INTEGER NOT NULL DEFAULT 0 CHECK (finita IN (0, 1))
+);
+
+CREATE TABLE IF NOT EXISTS manche_justone (
+    stanza_codice TEXT NOT NULL REFERENCES partite_justone(stanza_codice) ON DELETE CASCADE,
+    turno INTEGER NOT NULL,
+    parola_id INTEGER NOT NULL REFERENCES parole_justone(id),
+    indovina TEXT NOT NULL REFERENCES utenti(username) ON DELETE CASCADE,
+    tentativo TEXT,
+    riuscito INTEGER NOT NULL DEFAULT 0 CHECK (riuscito IN (0, 1)),
+    PRIMARY KEY (stanza_codice, turno)
+);
+
+CREATE TABLE IF NOT EXISTS indizi_justone (
+    stanza_codice TEXT NOT NULL,
+    turno INTEGER NOT NULL,
+    username TEXT NOT NULL REFERENCES utenti(username) ON DELETE CASCADE,
+    testo TEXT NOT NULL CHECK (length(testo) BETWEEN 1 AND 30),
+    PRIMARY KEY (stanza_codice, turno, username),
+    FOREIGN KEY (stanza_codice, turno) REFERENCES manche_justone(stanza_codice, turno) ON DELETE CASCADE
+);

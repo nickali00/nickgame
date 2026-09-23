@@ -4,7 +4,7 @@ Progetto per il corso di Advanced Programming Languages.
 
 ## Descrizione
 
-Stanze multiplayer con tre giochi in Python e aggiornamenti tramite Go: Forza 4, Quiz e Nomi, cose, città.
+Stanze multiplayer con quattro giochi in Python e aggiornamenti tramite Go: Forza 4, Quiz, Nomi, cose, città e Just One.
 
 ## Struttura
 
@@ -103,12 +103,12 @@ gli aggiornamenti. La lista è visibile anche prima del login.
 ## Catalogo giochi e scelta dell'admin
 
 La tabella `giochi` contiene nome e numero massimo di giocatori. Il primo elemento
-è **Forza 4**, massimo **2**; sono disponibili anche **Quiz** e **Nomi, cose, città**, massimo **8**. Ogni stanza conserva la scelta in `stanze.gioco_id`.
+è **Forza 4**, massimo **2**; sono disponibili anche **Quiz**, **Nomi, cose, città** e **Just One**, massimo **8**. Ogni stanza conserva la scelta in `stanze.gioco_id`.
 Tutti i partecipanti vedono i giochi compatibili con il numero attuale di utenti;
 l'admin clicca sull'intera scheda per scegliere un gioco. La scelta viene evidenziata
 per tutti tramite Go, senza avviare la partita. In un pannello sotto il catalogo
 compare il pulsante Avvia, disponibile solo all'admin. Gli altri vedono la scelta
-e attendono. Servono almeno 2 partecipanti.
+e attendono. Servono almeno 2 partecipanti, oppure 3 per Just One.
 Il controllo del ruolo viene ripetuto sul server; la scheda funziona anche da tastiera.
 
 Con tre o più partecipanti Forza 4 non viene mostrato. Se era già selezionato,
@@ -183,6 +183,29 @@ di due partecipanti la partita viene annullata. I punti delle manche già valuta
 restano quelli assegnati prima dell'uscita. L'admin può tornare nella sala e
 riprendere per tutti, conservando i dati. Cambiare gioco cancella la partita precedente.
 
+## Just One
+
+Versione didattica cooperativa in Python, da 3 a 8 giocatori, senza timer.
+Una manche a testa per indovinare: comincia l'admin, poi gli altri in ordine di username.
+Le parole sono estratte da `parole_justone` in SQLite, senza ripetizioni nella partita.
+
+Solo chi scrive gli indizi vede la parola segreta. Gli altri inviano una sola
+parola composta da massimo 30 lettere. Quando tutti hanno inviato, gli indizi
+uguali vengono eliminati, ignorando maiuscole e accenti. L'indovino vede solo
+quelli rimasti e ha un tentativo, oppure può passare. Ogni risposta corretta vale
+un punto per la squadra; l'admin avanza e mostra il risultato finale.
+
+Il server impedisce indizi identici alla parola segreta. Varianti e traduzioni
+non vengono riconosciute automaticamente: il rispetto di queste regole è affidato
+ai giocatori. Il confronto del tentativo con la soluzione ignora maiuscole e accenti.
+La parola segreta e gli indizi eliminati non compaiono nell'HTML dell'indovino;
+la parola viene rivelata a tutti solo dopo il tentativo o il passaggio.
+
+La pausa condivisa conserva partita e indizi. Nuovi ingressi attendono la fine.
+Per mantenere una rotazione semplice e stabile, se qualcuno esce dalla stanza
+la partita di Just One viene annullata. Un reload non equivale a uscire e conserva
+i dati già inviati. “Nuova partita” azzera punteggio e indizi.
+
 ## Verifica
 
 I test sono conservati solo localmente in `python/tests/` e non sono inclusi
@@ -211,6 +234,8 @@ quando lo schema viene inizializzato nuovamente.
 - `regole_forza4.py`: applica le regole di Forza 4 senza Flask o SQL.
 - `quiz.py`: gestisce domande, risposte, punti e avanzamento del Quiz.
 - `nomi.py`: gestisce manche, convalida e punteggi di Nomi, cose, città.
+- `justone.py`: gestisce ruoli, indizi, tentativi e punteggio cooperativo.
+- `repository_justone.py`: contiene le query SQL di Just One.
 - `repository_nomi.py`: contiene le query SQL di Nomi, cose, città.
 - `repository_quiz.py`: contiene le query SQL del Quiz.
 - `repository.py`: contiene le query SQL per utenti, stanze, giochi e partite.
