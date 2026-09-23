@@ -42,6 +42,11 @@ def accedi(username, azione, codice=''):
         is_admin = azione == 'crea'
         accesso_id = secrets.token_hex(16)
         repository.inserisci_utente(username, codice, is_admin, accesso_id)
+        # Un nuovo partecipante può rendere inadatto il gioco selezionato.
+        gioco = repository.gioco_selezionato(codice)
+        if gioco is not None and repository.conta_partecipanti(codice) > gioco['max_giocatori']:
+            repository.imposta_gioco(codice, None)
+            repository.elimina_partita(codice)
     return codice, accesso_id
 
 
@@ -59,4 +64,47 @@ def esci(username, accesso_id):
             repository.elimina_stanza(codice)
         else:
             repository.elimina_utente(username)
+    return codice
+
+
+class ErroreGioco(ValueError):
+    """Scelta del gioco non consentita."""
+
+
+def prepara_gioco(username, accesso_id, nome):
+    """Seleziona il gioco nella stessa transazione che ne avvia la partita."""
+    utente = repository.trova_utente(username)
+    if utente is None or utente['accesso_id'] != accesso_id or not utente['is_admin']:
+        raise ErroreGioco("Solo l'admin può avviare il gioco.")
+    gioco = repository.trova_gioco_per_nome(nome)
+    if gioco is None:
+        raise ErroreGioco('Gioco non trovato.')
+    codice = utente['stanza_codice']
+    totale = repository.conta_partecipanti(codice)
+    minimo = 2
+    if totale < minimo or totale > gioco['max_giocatori']:
+        raise ErroreGioco(f"Servono da {minimo} a {gioco['max_giocatori']} giocatori.")
+    cambia_gioco(codice, gioco['id'])
+
+
+def cambia_gioco(codice, gioco_id):
+    # Chiamata dentro la transazione di scelta o avvio.
+    precedente = repository.gioco_selezionato(codice)
+    if precedente is None or precedente['id'] != gioco_id:
+        repository.elimina_partita(codice)
+    repository.imposta_gioco(codice, gioco_id)
+
+
+def scegli_gioco(username, accesso_id, gioco_id):
+    with transazione():
+        utente = repository.trova_utente(username)
+        if utente is None or utente['accesso_id'] != accesso_id or not utente['is_admin']:
+            raise ErroreGioco("Solo l'admin può scegliere il gioco.")
+        gioco = repository.trova_gioco(gioco_id)
+        if gioco is None:
+            raise ErroreGioco('Gioco non trovato.')
+        codice = utente['stanza_codice']
+        if repository.conta_partecipanti(codice) > gioco['max_giocatori']:
+            raise ErroreGioco('Troppi partecipanti per questo gioco.')
+        cambia_gioco(codice, gioco_id)
     return codice

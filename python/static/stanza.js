@@ -5,6 +5,20 @@ let chiusuraPagina = false;
 let aggiornamentoInCorso = false;
 let aggiornamentoRichiesto = false;
 
+// La vista è condivisa nel database: solo l'admin può cambiarla per tutti.
+function aggiornaVista() {
+    const dati = document.querySelector("[data-partita-id]");
+    const partita = Boolean(dati?.dataset.partitaId);
+    const vistaGioco = partita && dati.dataset.inSala === "0";
+    document.getElementById("sala").hidden = vistaGioco;
+    document.getElementById("saluto-stanza").hidden = vistaGioco;
+    const torna = document.getElementById("torna-stanza");
+    const riprendi = document.getElementById("rientra-partita");
+    if (torna) torna.hidden = !vistaGioco;
+    if (riprendi) riprendi.hidden = !partita;
+    document.getElementById("partita").hidden = partita && !vistaGioco;
+}
+
 async function aggiornaPartecipanti() {
     // Serializza le richieste per non mostrare una risposta vecchia dopo una nuova.
     aggiornamentoRichiesto = true;
@@ -32,6 +46,18 @@ async function aggiornaPartecipanti() {
                 return riga;
             });
             elenco.replaceChildren(...righe);
+            // Il server genera anche i pulsanti corretti per admin e partecipanti.
+            for (const id of ["giochi", "partita"]) {
+                const pannello = document.getElementById(id);
+                const rispostaPannello = await fetch(pannello.dataset.url, {cache: "no-store"});
+                if (rispostaPannello.status === 401) {
+                    window.location.replace("/");
+                    return;
+                }
+                if (!rispostaPannello.ok) throw new Error("Pannello non disponibile");
+                pannello.innerHTML = await rispostaPannello.text();
+            }
+            aggiornaVista();
         }
         if (socket && socket.readyState === WebSocket.OPEN) {
             stato.textContent = "Partecipanti aggiornati in tempo reale.";

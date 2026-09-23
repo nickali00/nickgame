@@ -7,11 +7,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    {% set vista_gioco = partita and not partita.in_sala %}
     <main>
         <header>
             <h1>NICKGAME</h1>
-            <p>Ciao {{ utente['username'] }}! Sei nella stanza.</p>
+            <p id="saluto-stanza" {% if vista_gioco %}hidden{% endif %}>Ciao {{ utente['username'] }}! Sei nella stanza.</p>
         </header>
+        {% for messaggio in get_flashed_messages() %}
+        <p class="errore" role="alert">{{ messaggio }}</p>
+        {% endfor %}
+        <span id="sincronizzazione" hidden data-url="{{ url_for('collegamento') }}"></span>
+        <div id="sala" {% if vista_gioco %}hidden{% endif %}>
         <section class="card">
             <h2>Codice stanza: {{ utente['stanza_codice'] }}</h2>
             <p>Condividi questo codice con gli altri giocatori.</p>
@@ -24,7 +30,6 @@
                 </li>
                 {% endfor %}
             </ul>
-            <span id="sincronizzazione" hidden data-url="{{ url_for('collegamento') }}"></span>
             <noscript>Attiva JavaScript o ricarica la pagina per aggiornare i partecipanti.</noscript>
             <form method="post" action="{{ url_for('logout') }}">
                 {% if utente['is_admin'] %}
@@ -34,6 +39,27 @@
                 {% endif %}
             </form>
         </section>
+        <section id="giochi" class="card pannello-giochi" aria-labelledby="titolo-giochi"
+                 data-url="{{ url_for('elenco_giochi') }}">
+            {% include 'giochi.html' %}
+        </section>
+        {% if utente.is_admin %}
+        <form id="rientra-partita" method="post" action="{{ url_for('cambia_vista', azione='riprendi') }}"
+              {% if not partita %}hidden{% endif %}>
+            <button class="btn-secondary collegamento-pulsante">Torna al gioco</button>
+        </form>
+        {% endif %}
+        </div>
+        {% if utente.is_admin %}
+        <form id="torna-stanza" method="post" action="{{ url_for('cambia_vista', azione='stanza') }}"
+              {% if not vista_gioco %}hidden{% endif %}>
+            <button class="btn-secondary collegamento-pulsante">Torna alla stanza</button>
+        </form>
+        {% endif %}
+        <div id="partita" data-url="{{ url_for('pannello_partita') }}"
+             {% if partita and not vista_gioco %}hidden{% endif %}>
+            {% include 'partita.html' %}
+        </div>
     </main>
     <script src="{{ url_for('static', filename='stanza.js') }}" defer></script>
 </body>

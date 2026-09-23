@@ -24,6 +24,9 @@ if sys.argv[1] == sys.argv[2]:
 for porta in sys.argv[1:]:
     try:
         with socket.socket() as connessione:
+            # Come i server, consente il riavvio dopo connessioni in TIME_WAIT.
+            # Un server ancora in ascolto continua invece a bloccare la porta.
+            connessione.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             connessione.bind(('127.0.0.1', int(porta)))
     except (OSError, ValueError, OverflowError):
         sys.exit(f'Porta {porta} occupata o non valida. Ferma il vecchio server prima di riprovare.')

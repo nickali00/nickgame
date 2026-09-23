@@ -35,6 +35,17 @@ def init_db():
             # Le vecchie sessioni contenevano solo lo username.
             db.execute('UPDATE utenti SET accesso_id = username')
 
+    colonne = db.execute('PRAGMA table_info(stanze)').fetchall()
+    nomi = [colonna['name'] for colonna in colonne]
+    if 'gioco_id' not in nomi:
+        with db:
+            db.execute('ALTER TABLE stanze ADD COLUMN gioco_id INTEGER REFERENCES giochi(id)')
+
+    colonne = db.execute('PRAGMA table_info(partite_forza4)').fetchall()
+    if 'in_sala' not in [colonna['name'] for colonna in colonne]:
+        with db:
+            db.execute('ALTER TABLE partite_forza4 ADD COLUMN in_sala INTEGER NOT NULL DEFAULT 0 CHECK (in_sala IN (0, 1))')
+
 
 def transazione():
     db = get_db()

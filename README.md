@@ -4,12 +4,12 @@ Progetto per il corso di Advanced Programming Languages.
 
 ## Descrizione
 
-Da definire: scopo del gioco e funzionalità principali.
+Stanze multiplayer con Forza 4 in Python e aggiornamenti tramite Go.
 
 ## Struttura
 
 - `docs/`: requisiti e diario di sviluppo locali, esclusi dal repository.
-- `cpp/`: componente C++, responsabilità da definire.
+- `cpp/`: cartella riservata a eventuali componenti futuri.
 - `csharp/`: componente C#, responsabilità da definire.
 - `python/`: interfaccia Flask e primo flusso di creazione/accesso alle stanze con SQLite.
 - `go/`: server WebSocket per notificare gli aggiornamenti delle stanze.
@@ -100,6 +100,42 @@ gli aggiornamenti. La lista è visibile anche prima del login.
 - Il controllo dei campi avviene sul server. Il form usa `novalidate` per evitare
   che un codice incompleto blocchi anche il pulsante “Crea stanza”.
 
+## Catalogo giochi e scelta dell'admin
+
+La tabella `giochi` contiene nome e numero massimo di giocatori. Il primo elemento
+è **Forza 4**, massimo **2**. Ogni stanza conserva la scelta in `stanze.gioco_id`.
+Tutti i partecipanti vedono i giochi compatibili con il numero attuale di utenti;
+l'admin clicca sull'intera scheda per scegliere un gioco. La scelta viene evidenziata
+per tutti tramite Go, senza avviare la partita. In un pannello sotto il catalogo
+compare il pulsante Avvia, disponibile solo all'admin. Gli altri vedono la scelta
+e attendono. Servono 2 partecipanti per avviare Forza 4.
+Il controllo del ruolo viene ripetuto sul server; la scheda funziona anche da tastiera.
+
+Con tre o più partecipanti Forza 4 non viene mostrato. Se era già selezionato,
+l'ingresso del terzo utente annulla la scelta. Tornando a due utenti il gioco
+ricompare e l'admin può avviarlo nuovamente. Il filtro usa il massimo salvato
+nel database e si applica anche ai giochi che verranno aggiunti.
+
+Gli eventi Go aggiornano catalogo e selezione per tutti. L'admin può avviare Forza 4 quando ci sono esattamente due giocatori.
+Nella prima partita l'admin usa le pedine rosse e comincia; l'altro usa quelle gialle.
+A ogni rivincita i colori si scambiano: inizia sempre il rosso.
+Premi il numero sopra una colonna per inserire una pedina. Vince chi allinea
+quattro pedine in orizzontale, verticale o diagonale; a tabellone pieno senza
+vincitore è pareggio. Al termine l'admin può avviare una rivincita.
+
+Python salva griglia, giocatori, turno e risultato in `partite_forza4`.
+La funzione Python `regole_forza4.gioca` riceve griglia, turno e colonna e restituisce
+griglia aggiornata e risultato. Non accede al database. Go avvisa i browser dopo il salvataggio:
+il tabellone dell'avversario si aggiorna senza ricaricare la pagina.
+Durante la partita sono visibili solo il gioco e, per l’admin, “Torna alla stanza”.
+Il pulsante riporta tutti nella sala tramite Go, conservando la partita e sospendendo
+le mosse. Solo l’admin può premere “Torna al gioco” per far riprendere tutti.
+Chi gioca invia un normale form e torna al pannello della partita.
+
+Se uno dei giocatori esce, la partita viene cancellata. Se entra un terzo
+partecipante, Forza 4 viene deselezionato e la partita annullata.
+Ricaricare la pagina o riavviare i server conserva invece la partita nel database.
+
 ## Verifica
 
 I test sono conservati solo localmente in `python/tests/` e non sono inclusi
@@ -124,7 +160,9 @@ quando lo schema viene inizializzato nuovamente.
 - `configurazione.py`: prepara percorsi, chiave locale e impostazioni di Flask.
 - `sincronizzazione.py`: invia gli avvisi a Go e costruisce l’indirizzo WebSocket.
 - `servizi.py`: controlla le regole di accesso, genera i codici e assegna l'admin.
-- `repository.py`: contiene le query SQL per leggere e scrivere utenti e stanze.
+- `forza4.py`: controlla avvio e turni e salva le mosse.
+- `regole_forza4.py`: applica le regole di Forza 4 senza Flask o SQL.
+- `repository.py`: contiene le query SQL per utenti, stanze, giochi e partite.
 - `connessione.py`: apre e chiude la connessione, inizializza lo schema e gestisce commit/rollback.
 - `schema.sql`: definisce tabelle e vincoli del database.
 
@@ -157,8 +195,8 @@ Avvia l'intero package con `go run .` dalla cartella `go`.
 1. Flask salva l'ingresso in SQLite e, dopo il commit, avvisa Go tramite HTTP.
 2. Go invia un evento WebSocket ai browser collegati alla stanza interessata
    e un evento `stanze_aggiornate` ai browser sulla pagina di accesso.
-3. `python/static/stanza.js` riceve l'evento e legge l'elenco aggiornato da Flask.
-4. Il browser aggiorna solo l'elenco, senza ricaricare la pagina.
+3. `python/static/stanza.js` riceve l'evento e legge partecipanti, giochi e partita da Flask.
+4. Il browser aggiorna i pannelli senza ricaricare la pagina.
 
 Go non accede a SQLite. Le API Flask ricavano la stanza dalla sessione e
 non accettano dal browser il codice di una stanza arbitraria.
