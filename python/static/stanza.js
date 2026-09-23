@@ -88,6 +88,7 @@ async function aggiornaPartecipanti() {
                 aggiornaPannello(pannello, await rispostaPannello.text());
             }
             aggiornaVista();
+            avviaTimerNomi();
             const saldo = document.getElementById("saldo-monete");
             const rispostaSaldo = await fetch(saldo.dataset.url, {cache: "no-store"});
             if (!rispostaSaldo.ok) throw new Error("Saldo non disponibile");
@@ -146,3 +147,5 @@ window.addEventListener("pageshow", (evento) => {
     }
 });
 connetti();
+
+avviaTimerNomi();

@@ -12,6 +12,10 @@
     {% else %}
         <p class="stato-nomi" role="status">Manche {{ partita.turno }} di 3 · Risposte: {{ risposte_ricevute }}/{{ numero_partecipanti }}</p>
         <p class="lettera-nomi">Lettera <strong>{{ lettera }}</strong></p>
+        {% if secondi_rimasti is not none and not tutti_pronti and not partita.valutato %}
+        <p id="timer-nomi" role="timer" data-secondi="{{ secondi_rimasti }}"
+           data-url="{{ url_for('scadenza_nomi') }}">Tempo rimasto: <strong>5</strong> secondi</p>
+        {% endif %}
         {% if partita.valutato %}
             <h3>Risultati della manche</h3>
             <ul class="risultati-nomi">
@@ -21,43 +25,58 @@
             {% endfor %}
             </ul>
         {% elif tutti_pronti %}
-            <h3>Valutazione delle risposte</h3>
-            {% if utente.is_admin %}
-            <p>Spunta le risposte valide per la categoria. Vuote o con iniziale diversa valgono zero.</p>
+            <h3>Vota le risposte</h3>
+            <p>Servono {{ soglia_voti }} 👎 degli avversari per annullare una parola. Vuote o con iniziale errata valgono 0; parole uguali valide valgono 5, le altre 10.</p>
+            <p>Voti confermati: {{ votanti }}/{{ numero_partecipanti }}</p>
+            {% if not ha_votato %}
             <form class="valutazione-nomi" method="post" action="{{ url_for('azione_nomi', azione='valuta') }}"
-                  data-conserva="{{ partita.id }}-{{ partita.turno }}-valutazione">
+                  data-conserva="{{ partita.id }}-{{ partita.turno }}-voti">
                 <input type="hidden" name="partita_id" value="{{ partita.id }}">
                 <input type="hidden" name="turno" value="{{ partita.turno }}">
-                {% for risposta in risposte %}
-                <label class="risposta-nomi">
-                    <input type="checkbox" name="valide" value="{{ risposta.id }}"
-                           {% if not risposta.ammissibile %}disabled{% endif %}>
-                    <span><strong>{{ risposta.username }} · {{ categorie[risposta.categoria] }}</strong>
+                {% for categoria, etichetta in categorie.items() %}
+                <h4 class="categoria-voti">{{ etichetta }}</h4>
+                {% for risposta in risposte if risposta.categoria == categoria %}
+                <div class="risposta-nomi">
+                    <span><strong>{{ risposta.username }}</strong>
                         <span>{{ risposta.testo or '—' }}</span></span>
-                </label>
+                    {% if risposta.username != utente.username and risposta.ammissibile %}
+                    <label class="voto-contrario">
+                        <input type="checkbox" name="contestate" value="{{ risposta.id }}"
+                               aria-label="Contesta {{ categorie[risposta.categoria] }} di {{ risposta.username }}: {{ risposta.testo }}">
+                        <span aria-hidden="true">👎</span>
+                    </label>
+                    {% else %}<small>{{ '0 punti' if not risposta.ammissibile else 'La tua risposta' }}</small>{% endif %}
+                </div>
                 {% endfor %}
-                <button class="btn-primary">Conferma punteggi</button>
+                {% endfor %}
+                <p>Seleziona 👎 solo per le parole che non accetti. Conferma anche se sono tutte corrette.</p>
+                <button class="btn-primary">Conferma voti</button>
             </form>
             {% else %}
+            <p>Voti registrati. Attendi gli altri giocatori.</p>
+            {% for categoria, etichetta in categorie.items() %}
+            <h4 class="categoria-voti">{{ etichetta }}</h4>
             <ul class="risultati-nomi">
-                {% for risposta in risposte %}
-                <li><strong>{{ risposta.username }} · {{ categorie[risposta.categoria] }}</strong>
+                {% for risposta in risposte if risposta.categoria == categoria %}
+                <li><strong>{{ risposta.username }}</strong>
                     <span>{{ risposta.testo or '—' }}</span></li>
                 {% endfor %}
             </ul>
-            <p>Attendi la valutazione dell’admin.</p>
+            {% endfor %}
             {% endif %}
         {% elif ha_risposto %}
             <p>Risposte registrate. In attesa degli altri giocatori.</p>
         {% else %}
+            <p>Il primo invio lascia 5 secondi agli altri. Le parole già scritte vengono salvate automaticamente.</p>
+            <p id="errore-bozza" class="errore" role="status"></p>
             <p>Scrivi una parola per categoria con la lettera {{ lettera }}. Puoi lasciare vuoto se non sai rispondere.</p>
             <form class="form-nomi" method="post" action="{{ url_for('azione_nomi', azione='rispondi') }}"
-                  data-conserva="{{ partita.id }}-{{ partita.turno }}-risposte">
+                  data-conserva="{{ partita.id }}-{{ partita.turno }}-risposte" data-bozza="{{ url_for('bozza_nomi') }}">
                 <input type="hidden" name="partita_id" value="{{ partita.id }}">
                 <input type="hidden" name="turno" value="{{ partita.turno }}">
                 {% for categoria, etichetta in categorie.items() %}
                 <label for="risposta-{{ categoria }}">{{ etichetta }}</label>
-                <input id="risposta-{{ categoria }}" name="{{ categoria }}" type="text" maxlength="60" autocomplete="off">
+                <input id="risposta-{{ categoria }}" name="{{ categoria }}" type="text" maxlength="60" autocomplete="off" value="{{ bozza[categoria] }}">
                 {% endfor %}
                 <button class="btn-primary">Invia risposte</button>
             </form>

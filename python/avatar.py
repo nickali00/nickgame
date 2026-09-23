@@ -23,12 +23,12 @@ def verifica(utente):
 def carica(utente):
     with transazione():
         verifica(utente)
-        parti = repository_avatar.leggi(utente['username'])
+        parti = repository_avatar.leggi(utente['username'], utente['is_ospite'])
         opzioni = catalogo(utente['username'])
         if parti is None or any(parti[c] not in opzioni[c] for c in opzioni):
             parti = dict(testa=secrets.choice(['ragazzo', 'ragazza']),
                          corpo='felpa-arancione', piedi='jeans-blu')
-            repository_avatar.salva(utente['username'], parti)
+            repository_avatar.salva(utente['username'], parti, utente['is_ospite'])
     return parti
 
 
@@ -38,4 +38,4 @@ def salva(utente, parti):
         for categoria, opzioni in catalogo(utente['username']).items():
             if parti.get(categoria) not in opzioni:
                 raise ValueError('Devi prima acquistare questo oggetto premendo il lucchetto.')
-        repository_avatar.salva(utente['username'], parti)
+        repository_avatar.salva(utente['username'], parti, utente['is_ospite'])

@@ -2,7 +2,8 @@
     <form id="form-avatar" action="{{ url_for('salva_avatar') }}" method="post">
         <h2 id="titolo-avatar">Il tuo personaggio</h2>
         {% include 'codice_personale.html' %}
-        <p class="monete"><img class="icona-nickcoin" src="{{ url_for('static', filename='icone/nickcoin.png') }}" alt="" width="28" height="28"> Nickcoin: <strong id="saldo-avatar">{{ saldo_monete }}</strong></p>
+        {% if utente.is_ospite %}<p>Personaggio temporaneo. Per Nickcoin e acquisti serve un profilo.</p>{% endif %}
+        <p class="monete" {% if utente.is_ospite %}hidden{% endif %}><img class="icona-nickcoin" src="{{ url_for('static', filename='icone/nickcoin.png') }}" alt="" width="28" height="28"> Nickcoin: <strong id="saldo-avatar">{{ saldo_monete }}</strong></p>
         <div class="compositore-avatar">
             <div class="avatar-figura avatar-anteprima" aria-label="Anteprima personaggio">
                 {% for parte, nome in avatar_scelto.items() %}

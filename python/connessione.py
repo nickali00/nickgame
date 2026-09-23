@@ -38,6 +38,10 @@ def init_db():
             # Le vecchie sessioni contenevano solo lo username.
             db.execute('UPDATE utenti SET accesso_id = username')
 
+    if 'is_ospite' not in nomi:
+        with db:
+            db.execute('ALTER TABLE utenti ADD COLUMN is_ospite INTEGER NOT NULL DEFAULT 0')
+
     colonne = db.execute('PRAGMA table_info(stanze)').fetchall()
     nomi = [colonna['name'] for colonna in colonne]
     if 'gioco_id' not in nomi:
@@ -49,9 +53,14 @@ def init_db():
         with db:
             db.execute('ALTER TABLE partite_forza4 ADD COLUMN in_sala INTEGER NOT NULL DEFAULT 0 CHECK (in_sala IN (0, 1))')
 
+    colonne = db.execute('PRAGMA table_info(partite_nomi)').fetchall()
+    if 'scadenza' not in [colonna['name'] for colonna in colonne]:
+        with db:
+            db.execute('ALTER TABLE partite_nomi ADD COLUMN scadenza REAL')
+
     # Conserva gli avatar precedenti: il proprietario ora è il profilo permanente.
     with transazione():
-        db.execute('INSERT OR IGNORE INTO profili (username) SELECT username FROM utenti')
+        db.execute('INSERT OR IGNORE INTO profili (username) SELECT username FROM utenti WHERE is_ospite = 0')
         collegamenti = db.execute('PRAGMA foreign_key_list(avatar)').fetchall()
         if any(riga['table'] == 'utenti' for riga in collegamenti):
             db.execute('ALTER TABLE avatar RENAME TO avatar_precedenti')

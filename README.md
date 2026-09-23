@@ -33,6 +33,15 @@ quel Python; altrimenti usa `python3`. Il binario Go viene compilato in
 `go/build/`; il modulo C++ in `cpp/build/`. Entrambe le cartelle sono escluse da Git. Per porte diverse si possono impostare
 `NICKGAME_PY_PORT` e `NICKGAME_GO_PORT` prima del comando.
 
+## Accesso temporaneo
+
+In “Gioca senza account” basta uno username libero per creare una stanza o entrare,
+anche dalla lista pubblica. Gli ospiti possono giocare e scegliere un avatar gratuito.
+Non ricevono un codice personale né accumulano Nickcoin o acquisti. Uscendo dalla
+stanza, o quando l'admin la chiude, partecipazione e avatar temporaneo vengono eliminati.
+Chiudere soltanto la scheda non equivale a uscire dalla stanza.
+Gli username registrati rimangono riservati ai proprietari dei profili.
+
 ## Profili, monete e cosmetici
 
 Gli acquisti sono integrati in “Il tuo personaggio”, aperto dall’omino nella stanza.
@@ -189,14 +198,21 @@ Il primo avvio aggiorna lo schema senza cancellare gli utenti esistenti.
 
 Gioco interamente Python, da 2 a 8 giocatori. L'admin lo avvia dal catalogo.
 La partita dura tre manche: ogni volta viene estratta una lettera diversa e si
-compilano Nomi, Cose e Città. Non c'è timer; si può lasciare una risposta vuota.
+compilano Nomi, Cose e Città. Il primo invio avvia cinque secondi per gli altri.
+Le bozze vengono salvate durante la digitazione; alla scadenza il server blocca
+le parole già ricevute, lasciando vuoti i campi non compilati. La scadenza è
+salvata nel DB e non riparte ricaricando la pagina.
 
-Le risposte restano nascoste fino all'invio di tutti. L'admin spunta quelle valide
-per categoria e conferma i punteggi. Il server non accetta risposte vuote o con
-iniziale diversa dalla lettera estratta, anche se inviate manualmente come valide.
-Una risposta approvata vale 10 punti se unica nella categoria, 5 se uguale a quella
-di altri, 0 se non approvata. Maiuscole, accenti e spazi ripetuti non distinguono
-le risposte. La correttezza del significato viene valutata dall'admin, senza dizionario.
+Le risposte restano nascoste fino alla chiusura della fase di scrittura.
+Ogni giocatore seleziona 👎 sulle parole altrui che contesta e conferma i voti,
+anche se non contesta nulla. Non si possono votare le proprie risposte.
+Confermati i voti di tutti, una parola è annullata con la maggioranza assoluta
+degli avversari: floor((giocatori - 1) / 2) + 1 contrari.
+Le parole vuote o con iniziale errata valgono automaticamente zero.
+Le parole valide valgono 10 punti se uniche, 5 se almeno due giocatori hanno
+scritto la stessa parola valida nella stessa categoria. Maiuscole, accenti e
+spazi ripetuti vengono ignorati. Il significato è valutato dai giocatori,
+senza dizionario automatico.
 
 L'admin avvia la manche successiva e, dopo la terza, mostra la classifica finale;
 i pari merito sono consentiti. “Nuova partita” azzera i punteggi.

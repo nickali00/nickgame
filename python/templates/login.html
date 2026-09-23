@@ -15,7 +15,7 @@
                 <span>NICKGAME</span>
             </h1>
             <p>{% if profilo %}Ciao {{ profilo.username }}! Crea una stanza o scegli dove entrare.
-               {% else %}Accedi al tuo profilo per ritrovare il tuo personaggio.{% endif %}</p>
+               {% else %}Gioca con un solo username oppure accedi al tuo profilo.{% endif %}</p>
         </header>
 
         {% if errore %}<p class="errore" role="alert">{{ errore }}</p>{% endif %}
@@ -44,15 +44,20 @@
                 <button class="btn-secondary">Esci dal profilo</button>
             </form>
         </section>
+        {% endif %}
         <form id="accesso" method="post" class="card" novalidate>
-            <h2>Scegli la stanza</h2>
+            <h2>{{ 'Scegli la stanza' if profilo else 'Gioca senza account' }}</h2>
+            {% if not profilo %}
+            <p>Accesso temporaneo: nessun codice personale, Nickcoin o acquisto salvato.</p>
+            <label for="username-ospite">Username temporaneo</label>
+            <input id="username-ospite" name="username" maxlength="30" value="{{ username }}" required>
+            {% endif %}
             <button type="submit" name="azione" value="crea" class="btn-primary">Crea stanza</button>
             <label for="codice">Codice stanza</label>
             <input type="text" id="codice" name="codice" value="{{ codice }}"
                    inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="Es. 004281">
             <button type="submit" name="azione" value="entra" id="entra-con-codice" class="btn-secondary">Entra</button>
         </form>
-        {% endif %}
         <section class="card stanze-disponibili" aria-labelledby="titolo-stanze">
             <h2 id="titolo-stanze">Stanze disponibili</h2>
             <ul id="stanze" class="elenco-stanze" tabindex="0" aria-labelledby="titolo-stanze"
@@ -70,7 +75,7 @@
                 {% endfor %}
             </ul>
             <p id="nessuna-stanza" {% if stanze %}hidden{% endif %}>Nessuna stanza disponibile. Crea la prima!</p>
-            <noscript>Accedi al profilo, poi inserisci il codice stanza nel form sopra.</noscript>
+            <noscript>Inserisci lo username temporaneo oppure accedi al profilo, poi scegli la stanza.</noscript>
         </section>
     </main>
     <script src="{{ url_for('static', filename='stanze.js') }}" defer></script>

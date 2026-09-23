@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS utenti (
     username TEXT PRIMARY KEY NOT NULL
         CHECK (length(trim(username)) BETWEEN 1 AND 30),
     accesso_id TEXT NOT NULL,
+    is_ospite INTEGER NOT NULL DEFAULT 0 CHECK (is_ospite IN (0, 1)),
     stanza_codice TEXT NOT NULL REFERENCES stanze(codice),
     is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0, 1))
 );
@@ -82,6 +83,7 @@ CREATE TABLE IF NOT EXISTS partite_nomi (
     id TEXT NOT NULL,
     turno INTEGER NOT NULL DEFAULT 1 CHECK (turno BETWEEN 1 AND 3),
     lettere TEXT NOT NULL,
+    scadenza REAL,
     valutato INTEGER NOT NULL DEFAULT 0 CHECK (valutato IN (0, 1)),
     in_sala INTEGER NOT NULL DEFAULT 0 CHECK (in_sala IN (0, 1)),
     finita INTEGER NOT NULL DEFAULT 0 CHECK (finita IN (0, 1))
@@ -199,4 +201,31 @@ CREATE TABLE IF NOT EXISTS premi (
     username TEXT NOT NULL REFERENCES profili(username) ON DELETE CASCADE,
     monete INTEGER NOT NULL CHECK (monete >= 0),
     PRIMARY KEY(partita_id, gioco, username)
+);
+
+-- Gli avatar ospiti vengono rimossi insieme alla partecipazione temporanea.
+CREATE TABLE IF NOT EXISTS avatar_ospiti (
+    username TEXT PRIMARY KEY REFERENCES utenti(username) ON DELETE CASCADE,
+    testa TEXT NOT NULL,
+    corpo TEXT NOT NULL,
+    piedi TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bozze_nomi (
+    stanza_codice TEXT NOT NULL REFERENCES partite_nomi(stanza_codice) ON DELETE CASCADE,
+    username TEXT NOT NULL REFERENCES utenti(username) ON DELETE CASCADE,
+    turno INTEGER NOT NULL,
+    nomi TEXT NOT NULL, cose TEXT NOT NULL, citta TEXT NOT NULL,
+    PRIMARY KEY(stanza_codice, username, turno)
+);
+CREATE TABLE IF NOT EXISTS voti_nomi (
+    risposta_id INTEGER NOT NULL REFERENCES risposte_nomi(id) ON DELETE CASCADE,
+    username TEXT NOT NULL REFERENCES utenti(username) ON DELETE CASCADE,
+    PRIMARY KEY(risposta_id, username)
+);
+CREATE TABLE IF NOT EXISTS valutazioni_nomi (
+    stanza_codice TEXT NOT NULL REFERENCES partite_nomi(stanza_codice) ON DELETE CASCADE,
+    turno INTEGER NOT NULL,
+    username TEXT NOT NULL REFERENCES utenti(username) ON DELETE CASCADE,
+    PRIMARY KEY(stanza_codice, turno, username)
 );

@@ -19,10 +19,10 @@ def inserisci_stanza(codice):
     get_db().execute('INSERT INTO stanze (codice) VALUES (?)', (codice,))
 
 
-def inserisci_utente(username, codice, is_admin, accesso_id):
+def inserisci_utente(username, codice, is_admin, accesso_id, ospite=False):
     get_db().execute(
-        'INSERT INTO utenti (username, stanza_codice, is_admin, accesso_id) VALUES (?, ?, ?, ?)',
-        (username, codice, int(is_admin), accesso_id),
+        'INSERT INTO utenti (username, stanza_codice, is_admin, accesso_id, is_ospite) VALUES (?, ?, ?, ?, ?)',
+        (username, codice, int(is_admin), accesso_id, int(ospite)),
     )
 
 

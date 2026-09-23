@@ -41,6 +41,9 @@ def acquista(username, cosmetico_id):
 
 
 def premia(partita, gioco, username, esito, parole=0):
+    # Gli ospiti giocano senza portafoglio permanente.
+    if repository_profili.trova(username) is None:
+        return
     # Chiamata nella stessa transazione che conclude la partita: tutto o niente.
     if dati.premi_partita(partita, gioco, username) is not None:
         return

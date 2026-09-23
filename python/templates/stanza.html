@@ -28,7 +28,7 @@
                 <span>NICKGAME</span>
             </h1>
             <p id="saluto-stanza" {% if vista_gioco %}hidden{% endif %}>Ciao {{ utente['username'] }}! Sei nella stanza.</p>
-            <p class="monete"><img class="icona-nickcoin" src="{{ url_for('static', filename='icone/nickcoin.png') }}" alt="" width="28" height="28"> Nickcoin: <strong id="saldo-monete" data-url="{{ url_for('saldo_economia') }}">{{ saldo_monete }}</strong>
+            <p class="monete" {% if utente.is_ospite %}hidden{% endif %}><img class="icona-nickcoin" src="{{ url_for('static', filename='icone/nickcoin.png') }}" alt="" width="28" height="28"> Nickcoin: <strong id="saldo-monete" data-url="{{ url_for('saldo_economia') }}">{{ saldo_monete }}</strong>
             </p>
         </header>
         {% for messaggio in get_flashed_messages() %}
@@ -80,6 +80,7 @@
     </main>
     {% include 'avatar.html' %}
     <script src="{{ url_for('static', filename='avatar.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='nomi.js') }}" defer></script>
     <script src="{{ url_for('static', filename='stanza.js') }}" defer></script>
 </body>
 </html>

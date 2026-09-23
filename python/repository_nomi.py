@@ -47,7 +47,7 @@ def avanza(codice, lettera):
         get_db().execute('UPDATE partite_nomi SET finita = 1 WHERE stanza_codice = ?', (codice,))
     else:
         get_db().execute(
-            'UPDATE partite_nomi SET turno = turno + 1, lettere = lettere || ?, valutato = 0 WHERE stanza_codice = ?',
+            'UPDATE partite_nomi SET turno = turno + 1, lettere = lettere || ?, valutato = 0, scadenza = NULL WHERE stanza_codice = ?',
             (lettera, codice)
         )
 
@@ -65,3 +65,38 @@ def classifica(codice):
         (codice,)
     ).fetchall()
     return [dict(row) for row in rows]
+
+
+def imposta_scadenza(codice, quando):
+    get_db().execute('UPDATE partite_nomi SET scadenza=? WHERE stanza_codice=? AND scadenza IS NULL',
+                     (quando, codice))
+
+
+def bozza(codice, username, turno):
+    riga = get_db().execute('SELECT nomi, cose, citta FROM bozze_nomi WHERE stanza_codice=? AND username=? AND turno=?',
+                            (codice, username, turno)).fetchone()
+    return dict(riga) if riga else dict(nomi='', cose='', citta='')
+
+
+def salva_bozza(codice, username, turno, testi):
+    get_db().execute('INSERT INTO bozze_nomi VALUES (?, ?, ?, ?, ?, ?) '
+                     'ON CONFLICT(stanza_codice, username, turno) DO UPDATE SET '
+                     'nomi=excluded.nomi, cose=excluded.cose, citta=excluded.citta',
+                     (codice, username, turno, testi['nomi'], testi['cose'], testi['citta']))
+
+
+def valutazioni(codice, turno):
+    return [r['username'] for r in get_db().execute(
+        'SELECT username FROM valutazioni_nomi WHERE stanza_codice=? AND turno=?', (codice, turno))]
+
+
+def voti(codice, turno):
+    return [dict(r) for r in get_db().execute(
+        'SELECT voti_nomi.* FROM voti_nomi JOIN risposte_nomi ON risposte_nomi.id=voti_nomi.risposta_id '
+        'WHERE stanza_codice=? AND turno=?', (codice, turno))]
+
+
+def registra_voti(codice, turno, username, contestate):
+    for risposta_id in contestate:
+        get_db().execute('INSERT INTO voti_nomi VALUES (?, ?)', (risposta_id, username))
+    get_db().execute('INSERT INTO valutazioni_nomi VALUES (?, ?, ?)', (codice, turno, username))

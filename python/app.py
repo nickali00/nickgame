@@ -31,6 +31,8 @@ def utente_corrente():
         flask.session.pop('username', None)
         flask.session.pop('accesso_id', None)
         return None
+    if utente['is_ospite']:
+        return utente
     if flask.session.get('profilo_username') != username:
         codice = profili.completa_vecchio_profilo(username)
         if codice is None:
@@ -60,6 +62,15 @@ def login():
         azione = flask.request.form.get('azione')
         try:
             if profilo is None:
+                if azione in ('crea', 'entra'):
+                    username = flask.request.form.get('username', '').strip()
+                    codice = flask.request.form.get('codice', '').strip()
+                    codice, accesso_id = servizi.accedi(username, azione, codice, ospite=True)
+                    flask.session.clear()
+                    flask.session['username'] = username
+                    flask.session['accesso_id'] = accesso_id
+                    sincronizzazione.notifica_stanza(codice)
+                    return flask.redirect(flask.url_for('stanza'))
                 if azione == 'registra':
                     username = flask.request.form.get('username', '').strip()
                     username, personale = profili.crea(username)
@@ -97,7 +108,7 @@ def logout():
     # Una vecchia sessione deve poter leggere il nuovo codice prima di uscire.
     vecchio_accesso = 'profilo_username' not in flask.session
     utente = utente_corrente()
-    mostra_nuovo_codice = vecchio_accesso and utente is not None
+    mostra_nuovo_codice = vecchio_accesso and utente is not None and not utente['is_ospite']
     username = flask.session.get('username')
     accesso_id = flask.session.get('accesso_id', username)
     codice = servizi.esci(username, accesso_id)
@@ -158,7 +169,8 @@ def stanza():
     elenco = repository.partecipanti_stanza(utente['stanza_codice'])
     return flask.render_template(
         'stanza.html', utente=utente, partecipanti=elenco,
-        avatar_scelto=avatar.carica(utente), catalogo_avatar=repository_economia.catalogo(utente['username']),
+        avatar_scelto=avatar.carica(utente), catalogo_avatar=[a for a in repository_economia.catalogo(utente['username'])
+                         if not utente['is_ospite'] or a['prezzo'] == 0],
         giochi=repository.giochi_disponibili(utente['stanza_codice']),
         **stato_gioco(utente)
     )
@@ -174,6 +186,8 @@ def acquista_avatar():
     utente = utente_corrente()
     if utente is None:
         return flask.jsonify(errore='Accesso scaduto.'), 401
+    if utente['is_ospite']:
+        return flask.jsonify(errore='Gli acquisti richiedono un profilo registrato.'), 403
     username = utente['username']
     errore = None
     try:
@@ -188,6 +202,10 @@ def acquista_avatar():
 
 @app.get('/api/economia')
 def saldo_economia():
+    utente = utente_corrente()
+    if utente and utente['is_ospite']:
+        return flask.jsonify(saldo=0, catalogo=[a for a in repository_economia.catalogo(utente['username'])
+                                              if a['prezzo'] == 0])
     username = flask.session.get('profilo_username')
     if repository_profili.trova(username) is None:
         return flask.jsonify(errore='Accesso richiesto'), 401
@@ -308,6 +326,28 @@ def azione_quiz(azione):
     return flask.redirect(flask.url_for('stanza') + '#partita')
 
 
+@app.post('/nomi/bozza')
+def bozza_nomi():
+    utente = utente_corrente()
+    if utente is None:
+        return flask.jsonify(errore='Accesso scaduto.'), 401
+    try:
+        nomi.rispondi(utente['username'], utente['accesso_id'], flask.request.form.get('partita_id'),
+                     flask.request.form.get('turno', type=int), flask.request.form, bozza=True)
+    except servizi.ErroreGioco as errore:
+        return flask.jsonify(errore=str(errore)), 409
+    return flask.jsonify(ok=True)
+
+
+@app.post('/nomi/scadenza')
+def scadenza_nomi():
+    utente = utente_corrente()
+    if utente is None:
+        return flask.jsonify(errore='Accesso scaduto.'), 401
+    nomi.aggiorna_scadenza(utente['stanza_codice'])
+    return flask.jsonify(ok=True)
+
+
 @app.post('/nomi/<azione>')
 def azione_nomi(azione):
     utente = utente_corrente()
@@ -322,7 +362,7 @@ def azione_nomi(azione):
         elif azione == 'rispondi':
             codice = nomi.rispondi(username, accesso_id, partita_id, turno, flask.request.form)
         elif azione == 'valuta':
-            codice = nomi.valuta(username, accesso_id, partita_id, turno, flask.request.form.getlist('valide'))
+            codice = nomi.valuta(username, accesso_id, partita_id, turno, flask.request.form.getlist('contestate'))
         elif azione == 'prossima':
             codice = nomi.prossima(username, accesso_id, partita_id, turno)
         else:

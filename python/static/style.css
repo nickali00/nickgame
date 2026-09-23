@@ -375,3 +375,12 @@ button:disabled {
 .icona-nickcoin { width: 28px; height: 28px; object-fit: contain; vertical-align: middle; flex-shrink: 0; }
 .frecce-avatar .lucchetto-avatar { display: flex; align-items: center; justify-content: center; gap: 5px; }
 .lucchetto-avatar .icona-nickcoin { width: 25px; height: 25px; }
+
+#timer-nomi { color: #ffcc57; font-size: 1.15rem; }
+.voto-contrario { position: relative; cursor: pointer; flex-shrink: 0; }
+.voto-contrario input { position: absolute; opacity: 0; width: 44px; height: 44px; margin: 0; }
+.voto-contrario span { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #777; border-radius: 8px; font-size: 1.4rem; }
+.voto-contrario input:checked + span { background: #9b2921; border-color: #ff7665; }
+.voto-contrario input:focus-visible + span { outline: 2px solid white; outline-offset: 2px; }
+
+.categoria-voti { margin: 12px 0 0; padding-bottom: 8px; border-bottom: 1px solid #555; color: #ffcc57; font-size: 1.1rem; }

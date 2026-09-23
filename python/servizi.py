@@ -2,6 +2,7 @@
 import secrets
 
 import repository
+import repository_profili
 import repository_justone
 import repository_nomi
 import repository_quiz
@@ -12,7 +13,7 @@ class ErroreAccesso(ValueError):
     """Errore previsto da mostrare all'utente nel form."""
 
 
-def accedi(username, azione, codice=''):
+def accedi(username, azione, codice='', ospite=False):
     """Registra il partecipante e restituisce codice stanza e identificatore di accesso."""
     # Il form passa già lo username senza spazi iniziali e finali.
     lunghezza = len(username.strip())
@@ -30,6 +31,8 @@ def accedi(username, azione, codice=''):
 
     # Il servizio decide i confini della transazione: stanza e admin sono un'operazione unica.
     with transazione():
+        if ospite and repository_profili.trova(username):
+            raise ErroreAccesso('Username registrato. Accedi con il codice personale o scegli un altro nome.')
         if repository.trova_utente(username):
             raise ErroreAccesso('Username già occupato. Scegline un altro.')
         if azione == 'entra' and not repository.stanza_esiste(codice):
@@ -54,7 +57,7 @@ def accedi(username, azione, codice=''):
         # Solo chi crea la stanza riceve il ruolo di admin.
         is_admin = azione == 'crea'
         accesso_id = secrets.token_hex(16)
-        repository.inserisci_utente(username, codice, is_admin, accesso_id)
+        repository.inserisci_utente(username, codice, is_admin, accesso_id, ospite)
         # Un nuovo partecipante può rendere inadatto il gioco selezionato.
         gioco = repository.gioco_selezionato(codice)
         if gioco is not None and repository.conta_partecipanti(codice) > gioco['max_giocatori']:

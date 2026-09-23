@@ -6,6 +6,7 @@ import time
 from flask import current_app
 from connessione import transazione
 import repository_profili
+import repository
 
 
 def impronta(codice):
@@ -28,7 +29,7 @@ def crea(username):
     if not 1 <= len(username) <= 30:
         raise ValueError('Inserisci uno username da 1 a 30 caratteri.')
     with transazione():
-        if repository_profili.trova(username):
+        if repository_profili.trova(username) or repository.trova_utente(username):
             raise ValueError('Username già registrato. Accedi con il tuo codice o scegli un altro nome.')
         codice = nuovo_codice()
         repository_profili.inserisci(username, impronta(codice))
