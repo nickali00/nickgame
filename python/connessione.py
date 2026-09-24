@@ -67,17 +67,7 @@ def init_db():
         with db:
             db.execute('ALTER TABLE partite_nomi ADD COLUMN scadenza REAL')
 
-    # Conserva gli avatar precedenti: il proprietario ora è il profilo permanente.
     with transazione():
-        db.execute('INSERT OR IGNORE INTO profili (username) SELECT username FROM utenti WHERE is_ospite = 0')
-        collegamenti = db.execute('PRAGMA foreign_key_list(avatar)').fetchall()
-        if any(riga['table'] == 'utenti' for riga in collegamenti):
-            db.execute('ALTER TABLE avatar RENAME TO avatar_precedenti')
-            db.execute('CREATE TABLE avatar ('
-                       'username TEXT PRIMARY KEY REFERENCES profili(username) ON DELETE CASCADE, '
-                       'testa TEXT NOT NULL, corpo TEXT NOT NULL, piedi TEXT NOT NULL)')
-            db.execute('INSERT INTO avatar SELECT * FROM avatar_precedenti')
-            db.execute('DROP TABLE avatar_precedenti')
         # All'introduzione del negozio conserviamo i pezzi già indossati.
         if economia_nuova:
             for parte in ('testa', 'corpo', 'piedi'):

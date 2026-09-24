@@ -8,12 +8,27 @@ Stanze multiplayer con quattro giochi in Python e aggiornamenti tramite Go: Forz
 
 ## Struttura
 
-- `docs/`: requisiti e diario di sviluppo locali, esclusi dal repository.
 - `cpp/`: regole economiche e inferenza della rete neurale di Forza 4.
-- `csharp/`: componente C#, responsabilità da definire.
-- `python/`: interfaccia Flask e primo flusso di creazione/accesso alle stanze con SQLite.
+- `python/`: applicazione Flask, quattro giochi, profili, avatar e persistenza SQLite.
 - `go/`: server WebSocket per notificare gli aggiornamenti delle stanze.
-- `dati/`: dati di esempio per provare il progetto.
+- `allenamento/`: generazione dei dati, allenamento e valutazione della rete neurale.
+- `modelli/forza4/`: pesi già allenati e rapporti del modello.
+
+Python gestisce le regole e il database, Go distribuisce gli eventi ai browser e C++ esegue i calcoli economici e la rete neurale.
+
+## Prima installazione
+
+Servono Python 3.9 o successivo con supporto `venv`, Go 1.22 o successivo,
+Bash e g++ con supporto C++17. Dalla cartella `nickgame`:
+
+```bash
+python3 -m venv python/.venv
+python/.venv/bin/python -m pip install -r python/requirements.txt
+```
+
+La prima installazione richiede una connessione Internet per scaricare Flask
+e la dipendenza Go, scaricata automaticamente durante la compilazione.
+Per giocare si usano i pesi già inclusi: non occorre allenare il modello.
 
 ## Avvio con un solo comando
 
@@ -30,7 +45,7 @@ nei vecchi terminali: lo script non interrompe programmi che occupano le porte.
 
 Servono Python con Flask installato, Go e g++ con supporto C++17. Se esiste `python/.venv`, lo script usa
 quel Python; altrimenti usa `python3`. Il binario Go viene compilato in
-`go/build/`; il modulo C++ in `cpp/build/`. Entrambe le cartelle sono escluse da Git. Per porte diverse si possono impostare
+`go/build/`; i due eseguibili C++ in `cpp/build/`. Entrambe le cartelle sono escluse da Git. Per porte diverse si possono impostare
 `NICKGAME_PY_PORT` e `NICKGAME_GO_PORT` prima del comando.
 
 ## Accesso temporaneo
@@ -43,6 +58,11 @@ Chiudere soltanto la scheda non equivale a uscire dalla stanza.
 Gli username registrati rimangono riservati ai proprietari dei profili.
 
 ## Profili, monete e cosmetici
+
+Dalla pagina iniziale puoi creare un profilo scegliendo uno username libero.
+Conserva il codice personale di sei cifre assegnato: permette di accedere nuovamente
+al profilo. Dopo l’accesso puoi creare una stanza o entrare con il codice stanza,
+che è distinto dal codice personale.
 
 Gli acquisti sono integrati in “Il tuo personaggio”, aperto dall’omino nella stanza.
 I profili iniziano con zero monete e possono usare gratuitamente ragazzo/ragazza,
@@ -59,25 +79,17 @@ il personaggio scelto. Gli acquisti restano anche se si annulla la modifica dell
 `cpp/economia.hpp` dichiara le funzioni. Flask chiama l'eseguibile con `subprocess`,
 senza un terzo server. SQLite conserva portafogli, cosmetici, acquisti e premi;
 la conclusione di una partita e i relativi premi vengono salvati insieme.
-I pezzi già indossati prima dell'introduzione del negozio rimangono disponibili.
 
-Per l'avvio manuale compilare prima, dalla cartella del progetto:
+## Avvio manuale
+
+Dopo la prima installazione, compila entrambi gli eseguibili dalla cartella `nickgame`:
 
 ```bash
 mkdir -p cpp/build
 g++ -std=c++17 -Wall -Wextra -Werror -O2 cpp/main.cpp cpp/economia.cpp -o cpp/build/nickgame-economia
-```
-
-## Avvio manuale e installazione delle dipendenze
-
-Dalla cartella `nickgame`:
-
-```bash
+g++ -std=c++17 -Wall -Wextra -Werror -O2 cpp/bot/main.cpp cpp/bot/rete_forza4.cpp -o cpp/build/nickgame-bot
 cd python
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m flask --app app run --port 50010
+.venv/bin/python -m flask --app app run --port 50010
 ```
 
 Lascia aperto questo terminale. In un secondo terminale, dalla cartella `nickgame`:
@@ -93,8 +105,7 @@ crea la chiave locale condivisa tra i due servizi.
 
 Apri http://127.0.0.1:50010. Per simulare un secondo utente usa un altro browser
 oppure una finestra privata. I nuovi ingressi aggiornano automaticamente
-l'elenco dei partecipanti. Dopo aver installato questa versione, riavvia Flask
-e ricarica una volta le pagine già aperte per caricare il nuovo JavaScript.
+l'elenco dei partecipanti. Dopo un aggiornamento, riavvia i server e ricarica le pagine già aperte.
 
 SQLite è incluso in Python. Al primo avvio vengono creati il database
 `python/instance/nickgame.sqlite` e la chiave locale che firma le sessioni.
@@ -103,7 +114,8 @@ Questa cartella è esclusa da Git. Gli avvii successivi conservano i dati.
 ## Stanze disponibili
 
 Sotto il form di accesso compaiono codice, admin e numero di partecipanti delle
-stanze disponibili. Accedi al profilo con il codice personale e premi “Entra” sulla stanza scelta:
+stanze disponibili. Accedi al profilo oppure inserisci uno username in “Gioca senza account”,
+poi premi “Entra” sulla stanza scelta:
 il codice viene compilato automaticamente e viene inviato il normale form.
 Rimane disponibile anche l'accesso inserendo manualmente il codice.
 
@@ -124,14 +136,16 @@ quando la connessione funziona. La lista è visibile anche prima del login.
 - Il profilo permanente si crea con uno username; il server assegna un codice personale
   segreto di sei cifre per gli accessi successivi. È distinto dal codice stanza.
   Conservarlo: non esiste ancora un recupero del codice perso.
+  Il codice è salvato in chiaro in `profili.codice_personale`, con vincolo UNIQUE;
+  il login cerca direttamente quel valore tramite query parametrizzata. Non c’è
+  un blocco dei tentativi. Questa semplificazione è destinata al progetto locale.
 - “Esci dalla stanza” elimina la partecipazione temporanea. Profilo, monete, acquisti
   e avatar rimangono salvati; lo username rimane riservato.
 - “Esci e chiudi stanza”, disponibile all'admin, elimina la stanza e tutti i suoi utenti.
   Go notifica il cambiamento; i browser dei partecipanti ricevono HTTP 401 da Flask
   e tornano alla pagina iniziale. I loro profili restano salvati. Le altre stanze restano attive.
 - I vecchi cookie non tornano validi quando uno username viene riutilizzato:
-  Flask controlla anche `accesso_id`. Il database esistente viene aggiornato
-  automaticamente senza cancellare utenti o stanze.
+  Flask controlla anche `accesso_id`. L’identificatore cambia a ogni nuova partecipazione.
 - Il controllo dei campi avviene sul server. Il form usa `novalidate` per evitare
   che un codice incompleto blocchi anche il pulsante “Crea stanza”.
 
@@ -220,7 +234,6 @@ La gestione dei thread è pensata per il processo Flask singolo di `run.sh`.
 
 Il Quiz è implementato in Python: regole e punteggi in `quiz.py`, query SQL in
 `repository_quiz.py`. Go riusa le notifiche della stanza per aggiornare tutti.
-Non richiede C# né nuove dipendenze.
 
 - Da 2 a 8 giocatori; sopra 8 il gioco non compare nel catalogo.
 - Cinque domande fisse salvate in SQLite, con quattro opzioni ciascuna e senza timer.
@@ -237,7 +250,6 @@ Non richiede C# né nuove dipendenze.
 
 Le tabelle sono `domande_quiz`, `partite_quiz` e `risposte_quiz`. La soluzione
 corretta viene letta dal server: non si accettano punteggi inviati dal browser.
-Il primo avvio aggiorna lo schema senza cancellare gli utenti esistenti.
 
 ## Nomi, cose, città
 
@@ -262,7 +274,8 @@ senza dizionario automatico.
 L'admin avvia la manche successiva e, dopo la terza, mostra la classifica finale;
 i pari merito sono consentiti. “Nuova partita” azzera i punteggi.
 Gli aggiornamenti Go conservano testi in scrittura e spunte della valutazione.
-Le bozze non inviate non sono salvate nel database e si perdono ricaricando la pagina.
+Le bozze ricevute dal server sono salvate nel database e ripristinate ricaricando
+la pagina. Gli ultimi caratteri non ancora trasmessi possono andare persi.
 
 Come nel Quiz, gli ingressi sono bloccati durante la partita, anche in pausa.
 Chi esce viene rimosso dalla classifica e non blocca le risposte attese; con meno
@@ -295,17 +308,18 @@ i dati già inviati. “Nuova partita” azzera punteggio e indizi.
 
 ## Verifica
 
-I test sono conservati solo localmente in `python/tests/` e non sono inclusi
-nel repository. Nella copia di sviluppo, dalla cartella `python`, con l'ambiente
-virtuale attivo:
+I test sono conservati solo localmente in `tests/` e `python/tests/` e non sono
+inclusi nel repository. Nella copia di sviluppo, dalla cartella `nickgame`,
+la suite locale usata per le verifiche recenti si esegue con:
 
 ```bash
-python -m unittest discover -s tests -v
+PYTHONPATH=python python/.venv/bin/python -m unittest discover -s tests -v
 ```
 
-I test usano database temporanei e controllano creazione, ingresso, admin,
-errori di input, collisioni dei codici, sessioni e conservazione dei dati
-quando lo schema viene inizializzato nuovamente.
+La suite controlla profili e codici personali, ospiti, economia, votazioni di
+Nomi, cose, città, gestione del bot e inferenza C++. Il confronto numerico della
+rete richiede NumPy nell’ambiente di test. Queste verifiche non sono un passaggio
+necessario per avviare la copia pubblica.
 
 ## Riferimento per lo studio
 
@@ -335,13 +349,14 @@ per ogni query. Le letture delle pagine passano direttamente dal repository.
 Questa separazione è volutamente semplice; il collegamento al database usa ancora
 il contesto Flask, tramite `current_app` e `g`.
 
-Se la porta 5000 è occupata, dalla cartella `python` avvia con:
+Per usare porte diverse, dalla cartella `nickgame`:
 
 ```bash
-python3 -m flask --app app run --port 5001
+NICKGAME_PY_PORT=50012 NICKGAME_GO_PORT=50013 ./run.sh
 ```
 
-Poi apri http://127.0.0.1:5001.
+In questo esempio apri http://127.0.0.1:50012. Lo script configura anche gli
+indirizzi usati da Flask per comunicare con Go.
 
 ## Organizzazione del codice Go
 

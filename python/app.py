@@ -32,16 +32,10 @@ def utente_corrente():
         flask.session.pop('username', None)
         flask.session.pop('accesso_id', None)
         return None
-    if utente['is_ospite']:
-        return utente
-    if flask.session.get('profilo_username') != username:
-        codice = profili.completa_vecchio_profilo(username)
-        if codice is None:
-            flask.session.pop('username', None)
-            flask.session.pop('accesso_id', None)
-            return None
-        flask.session['profilo_username'] = username
-        flask.session['codice_personale'] = codice
+    if not utente['is_ospite'] and flask.session.get('profilo_username') != username:
+        flask.session.pop('username', None)
+        flask.session.pop('accesso_id', None)
+        return None
     return utente
 
 
@@ -77,7 +71,7 @@ def login():
                     username, personale = profili.crea(username)
                 elif azione == 'accedi':
                     personale = flask.request.form.get('codice_personale', '').strip()
-                    username = profili.accedi(personale, flask.request.remote_addr)['username']
+                    username = profili.accedi(personale)['username']
                 else:
                     raise ValueError('Accedi al profilo prima di scegliere una stanza.')
                 flask.session.clear()
@@ -106,18 +100,9 @@ def login():
 
 @app.post('/logout')
 def logout():
-    # Una vecchia sessione deve poter leggere il nuovo codice prima di uscire.
-    vecchio_accesso = 'profilo_username' not in flask.session
     utente = utente_corrente()
-    mostra_nuovo_codice = vecchio_accesso and utente is not None and not utente['is_ospite']
-    username = flask.session.get('username')
-    accesso_id = flask.session.get('accesso_id', username)
-    codice = servizi.esci(username, accesso_id)
-    if mostra_nuovo_codice:
-        flask.session.pop('username', None)
-        flask.session.pop('accesso_id', None)
-    else:
-        flask.session.clear()
+    codice = servizi.esci(utente['username'], utente['accesso_id']) if utente else None
+    flask.session.clear()
     if codice is not None:
         sincronizzazione.notifica_stanza(codice)
     return flask.redirect(flask.url_for('login'))

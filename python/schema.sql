@@ -153,14 +153,10 @@ CREATE TABLE IF NOT EXISTS indizi_justone (
 -- Il profilo e l'avatar rimangono anche quando il giocatore esce dalla stanza.
 CREATE TABLE IF NOT EXISTS profili (
     username TEXT PRIMARY KEY NOT NULL CHECK (length(trim(username)) BETWEEN 1 AND 30),
-    codice_hash TEXT UNIQUE
+    codice_personale TEXT NOT NULL UNIQUE
+        CHECK (length(codice_personale) = 6 AND codice_personale NOT GLOB '*[^0-9]*')
 );
 
-CREATE TABLE IF NOT EXISTS tentativi_accesso (
-    indirizzo TEXT PRIMARY KEY,
-    numero INTEGER NOT NULL,
-    ultimo REAL NOT NULL
-);
 CREATE TABLE IF NOT EXISTS avatar (
     username TEXT PRIMARY KEY REFERENCES profili(username) ON DELETE CASCADE,
     testa TEXT NOT NULL,
